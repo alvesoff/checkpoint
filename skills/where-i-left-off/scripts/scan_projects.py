@@ -74,6 +74,23 @@ def repositorios(raiz: str) -> list[str]:
     return achados
 
 
+def nome_do_projeto(repo: str) -> str:
+    """O nome que a pessoa reconhece.
+
+    Normalmente é o nome da pasta. Mas quando alguém aponta CODE_DIR para um
+    projeto só — o que funciona e é legítimo — a pasta dentro do container se
+    chama "projects", que é o ponto de montagem e não diz nada. Nesse caso o
+    nome sai da URL do remote, que é como o projeto se chama de verdade.
+    """
+    base = os.path.basename(repo.rstrip("/\\"))
+    if base != os.path.basename(RAIZ.rstrip("/\\")):
+        return base
+    origem = git(repo, "remote", "get-url", "origin")
+    if origem:
+        return os.path.basename(origem.rstrip("/")).removesuffix(".git")
+    return base
+
+
 def estado(repo: str) -> dict:
     """O retrato de um repositório: onde parou, e o que ficou pela metade."""
     ultimo = git(repo, "log", "-1", "--format=%H%x1f%ct%x1f%s%x1f%an")
@@ -84,9 +101,9 @@ def estado(repo: str) -> dict:
         # binário ausente). O segundo caso, silenciado, faz 25 repositórios
         # virarem "nenhum projeto ativo" em vez de um erro que se conserta.
         if git(repo, "rev-parse", "--git-dir"):
-            return {"projeto": os.path.basename(repo), "vazio": True}
+            return {"projeto": nome_do_projeto(repo), "vazio": True}
         return {
-            "projeto": os.path.basename(repo),
+            "projeto": nome_do_projeto(repo),
             "ilegivel": True,
             "erro": "git não conseguiu ler este repositório",
         }
@@ -123,7 +140,7 @@ def estado(repo: str) -> dict:
     commits_total = int(total) if total.isdigit() else 0
 
     return {
-        "projeto": os.path.basename(repo),
+        "projeto": nome_do_projeto(repo),
         "caminho": repo,
         "branch": git(repo, "rev-parse", "--abbrev-ref", "HEAD") or "(desconhecido)",
         "ultimo_commit": {
