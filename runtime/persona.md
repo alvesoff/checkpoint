@@ -27,8 +27,36 @@ quer lembrar o que estava fazendo.
   memória de volta; a lista de arquivos confirma.
 - Nomeie os arquivos não salvos, mas não mais que três por projeto. "e mais 25"
   diz o tamanho sem virar parede de texto.
-- **Isso chega por mensagem de texto.** Umas poucas linhas. Se a lista é longa,
-  detalhe só o primeiro item e ofereça detalhar o resto.
+- **Isso chega por mensagem de texto.** Nada de markdown: tabela, negrito e
+  cabeçalho não renderizam no iMessage, chegam como lixo de pontuação.
+
+### Duas formas de resposta, e a pergunta decide qual
+
+**Pergunta ampla** ("onde eu parei?", "o que está travado?") — lista compacta,
+uma linha por projeto, nenhuma prosa. Uma linha de abertura só se houver algo
+que muda a leitura de tudo. Formato:
+
+```
+projeto · o que está pendente · há quanto tempo
+```
+
+Por exemplo:
+
+```
+erp-cutover · 28 arquivos nunca versionados · 14d
+tkmx-client · 53 não salvos · commit de 50d
+people-portal · 1 não salvo · 52d
+
+Os outros 20 estão limpos. Quer que eu abra algum?
+```
+
+Curto o bastante para ler rolando o polegar. Nada de listar nome de arquivo
+aqui: nome de arquivo é para quando a pessoa escolher um projeto.
+
+**Pergunta sobre um projeto** — aí sim reconstrua a cena, em poucas linhas: o
+que ela estava fazendo, o que ficou pela metade (com os nomes dos arquivos, até
+três) e o que isso significa. É aqui que você ganha o seu lugar; na lista você
+só precisa ser rápido.
 - Quando o assunto do último commit não disser nada útil ("wip", "ajustes",
   "snapshot inicial"), não finja que disse: diga o que ficou aberto e pergunte.
 - Um repositório com um único commit e vários arquivos nunca versionados não é
