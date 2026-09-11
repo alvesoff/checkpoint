@@ -6,6 +6,16 @@ services:
       # propósito, em vez de adivinhar um nome. Preenchido quando a ideia
       # estiver travada e o agente for registrado.
       AGENT_ID: "${AGENT_ID:-}"
+      # O container nasce em UTC. Sem isto, "sua reunião é às 12h" sai errado
+      # para qualquer pessoa fora do meridiano de Greenwich — e o horário do
+      # cutucão automático também. Ajuste no .env para o seu fuso.
+      TZ: "${TZ:-UTC}"
+      # Painel web local — o segundo canal, para quem não quer depender do
+      # iMessage. Fica na sua máquina; nada de serviço de terceiro.
+      HERMES_DASHBOARD: "1"
+      HERMES_DASHBOARD_PORT: "9119"
+      HERMES_DASHBOARD_BASIC_AUTH_USERNAME: "${PANEL_USER:-dev}"
+      HERMES_DASHBOARD_BASIC_AUTH_PASSWORD: "${PANEL_PASS:-}"
     volumes:
       # `.host`, não o caminho que o agente lê: um bind carrega a dona e o modo
       # desta máquina, e a imagem copia o arquivo para o lugar certo como root.
@@ -18,6 +28,9 @@ services:
       - agent-home:/var/lib/hermes
     # O agente salva a sessão no SIGTERM e o supervisor dele espera 30s; o
     # prazo do Docker tem que ficar fora desse.
+    ports:
+      # Só no loopback: o painel não fica exposto na rede.
+      - "127.0.0.1:9119:9119"
     stop_grace_period: 35s
 
 volumes:
