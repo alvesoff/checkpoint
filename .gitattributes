@@ -1,0 +1,13 @@
+# Fim de linha LF, sempre — inclusive quando clonado no Windows com
+# core.autocrlf=true, que é o padrão do Git for Windows.
+#
+# Sem isto, o Git converte LF->CRLF no clone, o shebang de um script do s6 vira
+# "#!/bin/sh\r", o kernel do container não acha o interpretador e o script sai
+# com 127. O sintoma que aparece é outro: "credentials.host was never promoted
+# ... parking; no gateway will start" — fala de credencial quando o problema é
+# fim de linha. Custou uma hora para achar; ninguém que instalar isto deve
+# pagar de novo.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary

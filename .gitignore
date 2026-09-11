@@ -1,0 +1,4 @@
+plow-credentials
+plow-credentials.*
+.env
+projects/
