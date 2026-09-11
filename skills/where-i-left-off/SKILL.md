@@ -32,7 +32,9 @@ Campos que importam para a resposta:
 | `arquivos_alterados` | Trabalho feito e **não salvo em lugar nenhum**. O sinal mais forte de "parei no meio" — some se a máquina morrer, e ninguém além da pessoa vê |
 | `commits_nao_enviados` | Trabalho salvo localmente que **ninguém mais recebeu** |
 | `branch_sem_upstream` | Branch criado e nunca enviado — trabalho invisível para o time |
-| `ultimo_commit.ha_dias` | Há quanto tempo parou |
+| `ultimo_toque_ha_dias` | Há quanto tempo o projeto foi **realmente** tocado (arquivo modificado). É este o relógio de "parado", não a data do commit |
+| `ultimo_commit.ha_dias` | Há quanto tempo foi salvo no git. Pode ser muito maior que o toque — e aí a diferença **é** a notícia |
+| `nunca_versionado` | Um commit só e vários arquivos fora do git: não está parado, nunca entrou no git |
 | `ultimo_commit.assunto` | A pista mais direta do que a pessoa estava fazendo |
 
 ## Como responder
@@ -45,6 +47,11 @@ um relatório.
 - Quando houver alteração não salva, nomeie os arquivos: é o que faz a memória voltar.
 - Um projeto parado há 4 dias com alteração não salva é a coisa mais urgente da
   lista, mesmo que outro tenha prazo mais próximo. Trabalho não salvo se perde.
+- **Diga há quanto tempo foi tocado, não há quanto tempo foi commitado**, e
+  quando os dois divergem muito, essa divergência é a informação principal:
+  "você mexeu nisso há 14 dias, mas o último commit é de 88" quer dizer que há
+  duas semanas de trabalho sem histórico nenhum. Dizer "parado há 88 dias" para
+  quem mexeu no projeto há duas semanas queima a confiança na resposta inteira.
 - Se perguntarem de um projeto específico, responda só dele. A lista inteira
   quando a pergunta é "o que eu tenho em voo".
 - Não invente próximo passo que o repositório não sustenta. Se o último commit

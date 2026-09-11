@@ -74,6 +74,44 @@ def repositorios(raiz: str) -> list[str]:
     return achados
 
 
+def ultimo_toque(repo: str) -> float | None:
+    """Há quantos dias o arquivo mais recente foi modificado, ignorando o .git.
+
+    A idade do último commit engana em dois casos comuns, e num deles engana
+    muito: um projeto que nunca foi versionado de verdade tem um commit antigo
+    de "snapshot inicial" e trabalho feito ontem. Dizer "parado há 88 dias" para
+    alguém que mexeu nele há duas semanas destrói a confiança na resposta
+    inteira.
+
+    Percorre no máximo alguns milhares de arquivos e para: isto roda a cada
+    tique do monitor, e uma árvore grande com node_modules dentro levaria o
+    turno do agente junto.
+    """
+    limite = 5000
+    vistos = 0
+    recente = None
+    for raiz, dirs, arquivos in os.walk(repo):
+        dirs[:] = [
+            d for d in dirs
+            if d not in (".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__")
+        ]
+        for nome in arquivos:
+            vistos += 1
+            if vistos > limite:
+                break
+            try:
+                mtime = os.stat(os.path.join(raiz, nome)).st_mtime
+            except OSError:
+                continue
+            if recente is None or mtime > recente:
+                recente = mtime
+        if vistos > limite:
+            break
+    if recente is None:
+        return None
+    return round((time.time() - recente) / 86400, 1)
+
+
 def nome_do_projeto(repo: str) -> str:
     """O nome que a pessoa reconhece.
 
@@ -154,6 +192,7 @@ def estado(repo: str) -> dict:
         "commits_nao_enviados": int(adiante) if adiante.isdigit() else 0,
         "tem_remote": tem_remote,
         "commits_total": commits_total,
+        "ultimo_toque_ha_dias": ultimo_toque(repo),
         "nunca_versionado": commits_total <= 1 and len(sujo) >= 5,
         "branch_sem_upstream": tem_remote and not tem_upstream,
         "arquivado": idade_dias > DIAS_ATE_ARQUIVADO,

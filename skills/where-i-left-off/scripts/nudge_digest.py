@@ -49,7 +49,14 @@ def sinal(projeto: dict) -> str | None:
     reage diferente a cada uma, então a assinatura distingue — e muda quando o
     projeto passa de um para o outro.
     """
-    dias = projeto["ultimo_commit"]["ha_dias"]
+    # O relógio é o último TOQUE em arquivo, não a data do commit. Alguém que
+    # mexeu no projeto hoje está trabalhando nele — cutucar seria ruído, mesmo
+    # que o último commit seja de dois meses atrás. E o caso inverso é o que
+    # torna isso obrigatório: um projeto que nunca foi versionado tem commit
+    # antigo e trabalho recente, e seria cutucado todo dia pelo motivo errado.
+    dias = projeto.get("ultimo_toque_ha_dias")
+    if dias is None:
+        dias = projeto["ultimo_commit"]["ha_dias"]
     if dias < DIAS_ATE_TRAVADO:
         return None
 
