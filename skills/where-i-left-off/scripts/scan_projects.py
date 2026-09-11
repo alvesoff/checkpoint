@@ -52,25 +52,45 @@ def git(repo: str, *args: str) -> str:
     return saida.stdout.strip() if saida.returncode == 0 else ""
 
 
-def repositorios(raiz: str) -> list[str]:
-    """Os repositórios sob a raiz: os filhos diretos, e a própria raiz se for um.
+# Quantos níveis abaixo da raiz um repositório ainda conta. Dois, porque a
+# instalação pode montar mais de uma pasta de código — `/projects/<pasta>/<repo>`
+# — e porque monorepo com `backend/` e `frontend/` é comum. Três já começaria a
+# achar dependência de dependência.
+PROFUNDIDADE = 2
 
-    Não desce recursivamente. Quem monta uma pasta de código quer os projetos
-    dela, não cada submódulo e cada `node_modules` com .git dentro — e uma
-    varredura profunda numa árvore grande demora o suficiente para estourar o
-    turno do agente.
+# Pastas que nunca contêm projeto do dono, só código de terceiro. Descer nelas
+# encontra milhares de repositórios que não são dele e estoura o turno.
+IGNORAR = {".git", "node_modules", ".venv", "venv", "dist", "build",
+           "__pycache__", ".next", "vendor", ".cache", "Library", "AppData"}
+
+
+def repositorios(raiz: str) -> list[str]:
+    """Todo repositório até PROFUNDIDADE níveis abaixo da raiz.
+
+    Um repositório encontrado encerra aquele ramo: submódulo e repositório
+    aninhado dentro de outro são detalhe do projeto, não projeto do dono.
     """
-    achados = []
     if os.path.isdir(os.path.join(raiz, ".git")):
-        achados.append(raiz)
-        return achados
-    try:
-        entradas = sorted(os.scandir(raiz), key=lambda e: e.name)
-    except OSError:
-        return achados
-    for entrada in entradas:
-        if entrada.is_dir() and os.path.isdir(os.path.join(entrada.path, ".git")):
-            achados.append(entrada.path)
+        return [raiz]
+
+    achados = []
+
+    def descer(pasta: str, nivel: int) -> None:
+        if nivel > PROFUNDIDADE:
+            return
+        try:
+            entradas = sorted(os.scandir(pasta), key=lambda e: e.name)
+        except OSError:
+            return
+        for entrada in entradas:
+            if not entrada.is_dir(follow_symlinks=False) or entrada.name in IGNORAR:
+                continue
+            if os.path.isdir(os.path.join(entrada.path, ".git")):
+                achados.append(entrada.path)
+            else:
+                descer(entrada.path, nivel + 1)
+
+    descer(raiz, 1)
     return achados
 
 

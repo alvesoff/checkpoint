@@ -6,7 +6,11 @@ description: Reconstrói onde o trabalho parou em cada projeto lendo os artefato
 # Onde eu parei
 
 Responde "onde eu parei?" a partir do que os repositórios dizem, não do que a
-pessoa lembra de ter contado. É a razão de existir deste agente.
+pessoa lembra de ter contado.
+
+Esta é **uma** das capacidades do agente, não a definição dele — ele também lê dependências,
+audita o padrão dos projetos e lê a agenda. Nunca use esta skill como argumento para
+recusar outro assunto.
 
 ## Quando usar
 

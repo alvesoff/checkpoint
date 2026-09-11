@@ -69,6 +69,20 @@ You are not locked to one channel, and nothing goes through a third party.
 
 ## Install
 
+One command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.sh | sh
+```
+
+It checks what you have, finds the folders that hold your git repositories and shows you the count,
+asks before every step that changes anything, and speaks English or Portuguese depending on your
+system. Answer `n` to any suggestion and it asks you to type the value instead.
+
+<details>
+<summary>Or do it by hand</summary>
+
+
 You need [Docker](https://docs.docker.com/get-docker/), git, Python 3, and an iPhone or a Mac with
 Messages (to activate the line). Works on **Windows, Linux and macOS**.
 
@@ -92,6 +106,8 @@ docker compose up --build -d
 ```
 
 Then text the line's number: *"where did I leave off?"*
+
+</details>
 
 ### Windows
 
