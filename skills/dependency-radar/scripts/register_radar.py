@@ -36,15 +36,19 @@ NOME = "checkpoint-radar"
 INTERVALO = "every 6h"
 
 INSTRUCAO = (
-    "Uma dependência mudou de estado. A mudança está no bloco MONITOR acima, no "
-    "formato pacote|estado|quantos-projetos. Pegue a mais espalhada, abra o "
-    "changelog dela com a skill browsing, procure o que foi removido ou alterado, "
-    "e busque com rg se o dono realmente usa aquilo nos projetos afetados. "
-    "Mande UMA mensagem curta dizendo o que quebra e onde — ou, se não quebrar "
-    "nada que ele usa, diga isso, que é a melhor notícia. "
-    "Se a mudança não merecer interromper alguém, responda NO_REPLY."
+    "Uma dependencia mudou de estado. A mudanca esta no bloco MONITOR acima, no formato "
+    "pacote|estado|quantos-projetos. Pegue a mais espalhada, abra o changelog dela com a skill "
+    "browsing, e busque com rg se o dono realmente usa o que foi removido nos projetos afetados. "
+    "Componha UMA mensagem curta dizendo o que quebra e onde, ou, se nao quebrar nada que ele "
+    "usa, diga isso, que e a melhor noticia. "
+    "\n\nENTREGA: mande a mensagem chamando a ferramenta plow_send_message, com "
+    "chat_id igual ao canal do dono, e depois responda exatamente NO_REPLY. "
+    "Nao escreva a mensagem como resposta do turno: a entrega automatica do cron "
+    "embrulha o texto com 'Cronjob Response', o id do job e instrucoes de "
+    "gerenciamento, que e lixo tecnico na conversa de quem usa isto. "
+    "Se a mudanca nao merecer interromper alguem, responda NO_REPLY e nao chame "
+    "ferramenta nenhuma."
 )
-
 
 def destino() -> str:
     """Para onde a mensagem vai.
@@ -60,7 +64,7 @@ def destino() -> str:
                 canal = f.read().strip()
         except OSError:
             canal = ""
-    return f"plow_chat:{canal}" if canal else "origin"
+    return canal or "desta conversa"
 
 
 def jobs_registrados() -> list[dict]:
@@ -100,13 +104,16 @@ def main() -> int:
 
     resultado = subprocess.run(
         [
-            HERMES, "cron", "create", INTERVALO, INSTRUCAO,
+            HERMES, "cron", "create", INTERVALO,
+            INSTRUCAO.replace("o canal do dono", f"o canal {destino()}"),
             "--name", NOME,
             # Sem isto o Hermes usa `local`: o agente compõe a mensagem e a grava
             # num arquivo dentro do container em vez de entregar. O aviso
             # proativo é metade deste produto, e sem destino ele simplesmente
             # nunca chega — sem erro nenhum, o que torna a falha invisível.
-            "--deliver", destino(),
+            # O envelope do cron morre num arquivo; a mensagem de verdade vai pela
+            # ferramenta de chat, com o texto do agente e nada alem.
+            "--deliver", "local",
             "--monitor-script", "deps_digest.py",
             "--skill", "dependency-radar",
         ],
