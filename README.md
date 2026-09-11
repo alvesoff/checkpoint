@@ -76,22 +76,23 @@ Then text the line's number: *"where did I leave off?"*
 
 ### Windows
 
-Everything above works in Git Bash, with two things to know — both cost real time to diagnose if
-you hit them blind:
+Everything above works in Git Bash, with one thing to know:
 
 ```bash
-# The shebang is python3, which Windows hijacks with a Microsoft Store alias.
+# The shebang says python3, which Windows hijacks with a Microsoft Store alias.
+# Call the CLI through python instead.
 python plow-agents/bin/plow-agents login --new-line
-
-# Clone with LF endings. Git for Windows converts to CRLF by default, which
-# breaks a shell script inside the image — and the error it produces talks
-# about credentials, not line endings.
-git clone -c core.autocrlf=false <this-repo> checkpoint
 ```
+
+You do **not** need to touch `core.autocrlf` for this repo — the shipped `.gitattributes` pins
+every file to LF, so a default Git-for-Windows clone still produces an image that boots. (Verified
+by cloning both ways.) That matters because the failure it prevents is nasty: Git converts the line
+endings, a shell script inside the image gets a `` in its shebang, and the container parks with an
+error message about *credentials* rather than line endings.
 
 ### Pointing `CODE_DIR` at the right thing
 
-Point it at the folder that **contains** your projects, not at one project:
+Point it at the folder that **contains** your projects:
 
 ```
 ~/code/            <- CODE_DIR goes here
@@ -102,6 +103,8 @@ Point it at the folder that **contains** your projects, not at one project:
 
 It looks one level deep, on purpose: a recursive walk would find every `node_modules` with a `.git`
 in it and take long enough to time out.
+
+Pointing it straight at a single project works too — it just watches that one.
 
 ### Turning on the nudges
 
@@ -121,7 +124,7 @@ Don't take our word for it — the whole claim rests on two lines you can read y
 
 | What you see | What it is |
 |---|---|
-| "no git repository found in /projects" | `CODE_DIR` points at a single project instead of the folder containing them |
+| "no git repository found in /projects" | `CODE_DIR` points at a folder with no repositories in it, or one level too high |
 | "none of the N repositories could be read by git" | Ownership mismatch between host and container. The image ships `/etc/gitconfig` with `safe.directory = *`; if you rebuilt from a modified Dockerfile, check it is still there |
 | Every file shows as unsaved | Your repos were cloned with CRLF and the index holds LF. The agent already normalizes for this — if you still see it, you are running an image built before that fix |
 | The agent offers to use your Mac | The platform injects that capability into every agent's description. This one does not do it; the persona says so explicitly |
