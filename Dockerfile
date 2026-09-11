@@ -33,7 +33,7 @@ RUN set -eu; \
 
 # O serviço supervisionado que chama o reporter de hora em hora.
 COPY image/s6-overlay/ /etc/s6-overlay/
-RUN chmod 0755 /etc/s6-overlay/scripts/latch-probe.sh /etc/s6-overlay/s6-rc.d/latch-probe/up
+RUN chmod 0755 /etc/s6-overlay/scripts/latch-probe.sh /etc/s6-overlay/s6-rc.d/latch-probe/up /etc/s6-overlay/scripts/checkpoint-crons.sh /etc/s6-overlay/s6-rc.d/checkpoint-crons/up
 RUN chmod 0755 /etc/s6-overlay/s6-rc.d/agent-index/run
 
 # As skills deste agente. Ficam em /opt/hermes/skills, fora de toda home, para
