@@ -2,48 +2,67 @@
 
 **You didn't forget what to do. You forgot where you stopped.**
 
-Text it "where did I leave off?" and it answers from your repositories — the commit you were on,
-the files you changed and never saved anywhere, the branch nobody else has seen. It also texts you,
-unprompted, when something has been sitting too long.
+An assistant that lives in your phone, knows your machine, and looks after what you left behind.
 
-It reads. It never writes.
+It reads. It never writes to your projects.
 
 ---
 
 ## Why
 
-Developers make [12–15 major context switches a day, and each one costs about 23 minutes to recover
-from](https://speakwiseapp.com/blog/context-switching-statistics). Most of those 23 minutes go to
-rebuilding a mental state that is already written down — in the branch you were on, the last commit
-message you wrote, the files still sitting dirty in your working tree.
+Developers make [12-15 major context switches a day, each costing about 23 minutes to recover
+from](https://speakwiseapp.com/blog/context-switching-statistics). Most of those minutes go to
+rebuilding a state that is already written down — the branch you were on, the commit message you
+wrote, the files still dirty in your tree.
 
-Checkpoint reads that, so you don't have to rebuild it.
-
-This gets worse the more you build with AI agents: more parallel work, less of it held in your own
-head.
+Building with AI agents made this worse, not better. You start four in parallel, walk into a
+meeting, and come back not knowing which one stalled. The ecosystem answered with **more agents that
+write code** — Cline, OpenHands, Aider, Goose. None of them look after the debris they leave.
 
 ## What it does
 
-**Ask it.**
+**Where you stopped.** Branch, last commit, files changed and never saved, commits nobody has seen,
+and how long since the project was *actually touched* — file mtime, not commit date, because a repo
+that never really made it into git has an old commit and recent work.
 
-> **you:** where did I leave off?
->
-> **Checkpoint:** The one that matters is `erp-cutover` — 88 days idle, last commit "initial
-> local snapshot", 28 files changed and never saved anywhere: `_audit.py`, `_reconcile.py`,
-> `_find_vendors.py` and 25 more. That repo has one commit and everything else untracked — it never
-> really made it into git.
->
-> Also dirty: `people-portal` (52 days), `qrcode-plates` (11 days). The other 22 projects are clean.
+> The one that matters is `erp-cutover` — last commit "initial local snapshot" 88 days ago, but
+> you touched it 14 days ago and 28 files were never versioned at all. That repo has one commit and
+> everything else untracked — it never really made it into git.
 
-**Or let it tell you.** It watches quietly and messages you when a project *crosses* a threshold —
-two days idle with unsaved work, then four, then a week. Nothing changes, nothing is sent. It does
-not send a daily digest, and it will not tell you twice about the same thing.
+**It tells you before you ask.** Quietly, only when a project *crosses* a threshold — two days idle
+with unsaved work, then four, then a week. Nothing changes, nothing is sent. No daily digest, and it
+will not tell you the same thing twice.
+
+**What is about to break.** It maps every package in every project and checks the registries — then,
+unlike a bot that opens pull requests nobody reads, it opens the changelog in a real browser and
+greps *your* code to see whether the removed API is one you actually call.
+
+> Express 5 removes `req.param()`. You call it in 3 files, in `service-desk` and
+> `staff-portal`. Upgrading without touching those breaks login in both.
+
+**Where your own projects contradict each other.** Not a linter — a linter compares your code to
+someone else's rule. This compares your projects to *each other*: containers running as root,
+missing healthchecks, five different base images for the same language, a secret sitting in a file
+git isn't tracking.
+
+**Your day, honestly.** It reads your calendar over its iCal address — Google, Outlook/M365 or Apple,
+no OAuth — and uses it to say what is realistic, not to manage it. When a block makes sense it sends
+a one-tap link; you confirm. It never writes to your calendar either.
+
+**Your Mac, when you have one.** If a Mac with Plow Latch is connected, it uses *your* browser with
+*your* logged-in sessions. If not, it uses the browser inside the container and says what it can and
+cannot reach. It checks before it promises.
+
+## Where you talk to it
+
+**iMessage**, and a **local web panel** at `127.0.0.1:9119` behind a login, bound to loopback only.
+You are not locked to one channel, and nothing goes through a third party.
 
 ## What it does not do
 
 - **It never writes to your projects.** The folder is mounted read-only at the Docker level. It
   cannot commit, push, branch, or edit — not by policy, by permission.
-- It does not manage your calendar, triage your email, or plan your day.
+- It does not manage your calendar or plan your day. It reads the calendar to tell you what fits.
 - It cannot see your editor, your terminal, or your AI coding session. It reads git, nothing else.
 - It does not read your code to a server. Your files stay on your machine; only what it needs to
   answer you reaches the model.
@@ -87,7 +106,8 @@ python plow-agents/bin/plow-agents login --new-line
 You do **not** need to touch `core.autocrlf` for this repo — the shipped `.gitattributes` pins
 every file to LF, so a default Git-for-Windows clone still produces an image that boots. (Verified
 by cloning both ways.) That matters because the failure it prevents is nasty: Git converts the line
-endings, a shell script inside the image gets a `` in its shebang, and the container parks with an
+endings, a shell script inside the image gets a `
+` in its shebang, and the container parks with an
 error message about *credentials* rather than line endings.
 
 ### Pointing `CODE_DIR` at the right thing
@@ -108,8 +128,22 @@ Pointing it straight at a single project works too — it just watches that one.
 
 ### Turning on the nudges
 
-Once, in the chat: *"start nudging me about stale work."* It registers a single scheduled check and
-will not create a second one if you ask again.
+Once, in the chat: *"start nudging me about stale work"* and *"watch my dependencies"*. Each
+registers a single scheduled check and will not create a second one if you ask again.
+
+### Optional: your calendar
+
+Give it the secret iCal address of your calendar (Google: *Calendar settings > Secret address in
+iCal format*; Outlook: *Calendar > Share > Publish > ICS*). Read-only, no OAuth, no account.
+
+### Optional: the web panel
+
+Set `PANEL_USER` and `PANEL_PASS` in `.env` and open `http://127.0.0.1:9119`.
+
+### Set your timezone
+
+`TZ=America/Sao_Paulo` in `.env`. The container is UTC by default, and a calendar read in the wrong
+timezone tells you a 9am meeting is at noon.
 
 ## Verifying the read-only claim
 
