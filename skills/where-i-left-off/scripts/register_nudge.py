@@ -46,6 +46,23 @@ INSTRUCAO = (
 )
 
 
+def destino() -> str:
+    """Para onde a mensagem vai.
+
+    O canal de origem do agente é publicado pelo boot em PLOW_HOME_CHANNEL. Sem
+    destino explícito o Hermes entrega em `local`, que grava num arquivo e não
+    avisa ninguém.
+    """
+    canal = os.environ.get("PLOW_HOME_CHANNEL", "").strip()
+    if not canal:
+        try:
+            with open("/run/s6/container_environment/PLOW_HOME_CHANNEL", encoding="utf-8") as f:
+                canal = f.read().strip()
+        except OSError:
+            canal = ""
+    return f"plow_chat:{canal}" if canal else "origin"
+
+
 def jobs_registrados() -> list[dict]:
     """Os jobs que o hermes conhece. Arquivo ausente é agenda vazia; arquivo
     ilegível é erro, nunca 'vazio' — registrar por cima de estado que não
@@ -85,6 +102,11 @@ def main() -> int:
         [
             HERMES, "cron", "create", INTERVALO, INSTRUCAO,
             "--name", NOME,
+            # Sem isto o Hermes usa `local`: o agente compõe a mensagem e a grava
+            # num arquivo dentro do container em vez de entregar. O aviso
+            # proativo é metade deste produto, e sem destino ele simplesmente
+            # nunca chega — sem erro nenhum, o que torna a falha invisível.
+            "--deliver", destino(),
             "--monitor-script", "nudge_digest.py",
             "--skill", "where-i-left-off",
         ],
