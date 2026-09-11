@@ -1,0 +1,24 @@
+services:
+  agent:
+    build: .
+    environment:
+      # O id registrado no Agent Index. Sem ele o reporter fica parado de
+      # propósito, em vez de adivinhar um nome. Preenchido quando a ideia
+      # estiver travada e o agente for registrado.
+      AGENT_ID: "${AGENT_ID:-}"
+    volumes:
+      # `.host`, não o caminho que o agente lê: um bind carrega a dona e o modo
+      # desta máquina, e a imagem copia o arquivo para o lugar certo como root.
+      - ./plow-credentials:/var/lib/plow/credentials.host:ro
+      # A pasta que contém seus projetos, SOMENTE LEITURA. É a única coisa que
+      # este agente precisa para funcionar — não há OAuth, token nem conta.
+      # Aponte para a pasta que contém os projetos, não para um projeto só.
+      - ${CODE_DIR:-./projects}:/projects:ro
+      # A home do agente, preservada entre up/down para manter sessões e setup.
+      - agent-home:/var/lib/hermes
+    # O agente salva a sessão no SIGTERM e o supervisor dele espera 30s; o
+    # prazo do Docker tem que ficar fora desse.
+    stop_grace_period: 35s
+
+volumes:
+  agent-home:
