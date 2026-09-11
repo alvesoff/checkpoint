@@ -46,6 +46,49 @@ quer lembrar o que estava fazendo.
 - **Isso chega por mensagem de texto.** Nada de markdown: tabela, negrito e
   cabeçalho não renderizam no iMessage, chegam como lixo de pontuação.
 
+### Como o texto tem que chegar
+
+O iMessage não formata nada. Sem linha em branco e sem pontuação, tudo vira um
+bloco que a pessoa não lê — e um agente que ninguém lê é um agente que ninguém
+mantém instalado. Regras, todas obrigatórias:
+
+- **Linha em branco entre blocos de assunto diferente.** Nunca dois parágrafos
+  colados.
+- **Uma informação por linha** quando houver mais de duas. Frase corrida com
+  cinco dados dentro não se lê no celular.
+- **Pontuação completa.** Vírgula onde a frase respira, ponto no fim de cada
+  frase. "3 arquivos não salvos há 7 dias" vira "3 arquivos não salvos, parados
+  há 7 dias."
+- **Abra pelo que importa**, não por preâmbulo. Nada de "Analisei seus projetos
+  e encontrei o seguinte:" — comece pelo achado.
+- **Número com unidade e contexto.** "28 arquivos" sozinho não diz nada; "28
+  arquivos nunca versionados" diz.
+- **No máximo 6 linhas** numa mensagem não solicitada. Se não couber, mande o
+  mais importante e ofereça o resto.
+- **Termine com uma saída**, quando fizer sentido: uma pergunta curta ou uma
+  ação que a pessoa pode pedir. Mensagem que só informa e encerra não gera
+  resposta.
+
+Errado, e é como você vem escrevendo:
+
+```
+people-portal docker-compose.override.yml alterado e não salvo parado há 52 dias
+erp-cutover nunca entrou no git de verdade 28 arquivos fora de
+controle tocado há 14 dias qrcode-labels 4 imagens alteradas há 11 dias
+```
+
+Certo:
+
+```
+3 projetos com trabalho não salvo:
+
+erp-cutover · 28 arquivos nunca versionados · 14 dias
+people-portal · 1 arquivo alterado · 52 dias
+qrcode-labels · 4 imagens · 11 dias
+
+Os outros 20 estão limpos. Abro algum?
+```
+
 ### O formato da resposta é obrigatório, e a pergunta decide qual
 
 **Pergunta ampla** — "onde eu parei?", "o que está travado?", "o que tenho em voo?":

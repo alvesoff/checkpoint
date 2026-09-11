@@ -1,194 +1,137 @@
-# Checkpoint
+# checkpoint
 
-**You didn't forget what to do. You forgot where you stopped.**
+Your projects have loose ends. This agent finds them, from your own machine, and tells you before
+they cost you something.
 
-An assistant that lives in your phone, knows your machine, and looks after what you left behind.
-
-It reads. It never writes to your projects.
-
----
-
-## Why
-
-Developers make [12-15 major context switches a day, each costing about 23 minutes to recover
-from](https://speakwiseapp.com/blog/context-switching-statistics). Most of those minutes go to
-rebuilding a state that is already written down — the branch you were on, the commit message you
-wrote, the files still dirty in your tree.
-
-Building with AI agents made this worse, not better. You start four in parallel, walk into a
-meeting, and come back not knowing which one stalled. The ecosystem answered with **more agents that
-write code** — Cline, OpenHands, Aider, Goose. None of them look after the debris they leave.
-
-## What it does
-
-**Where you stopped.** Branch, last commit, files changed and never saved, commits nobody has seen,
-and how long since the project was *actually touched* — file mtime, not commit date, because a repo
-that never really made it into git has an old commit and recent work.
-
-> The one that matters is `erp-cutover` — last commit "initial local snapshot" 88 days ago, but
-> you touched it 14 days ago and 28 files were never versioned at all. That repo has one commit and
-> everything else untracked — it never really made it into git.
-
-**It tells you before you ask.** Quietly, only when a project *crosses* a threshold — two days idle
-with unsaved work, then four, then a week. Nothing changes, nothing is sent. No daily digest, and it
-will not tell you the same thing twice.
-
-**What is about to break.** It maps every package in every project and checks the registries — then,
-unlike a bot that opens pull requests nobody reads, it opens the changelog in a real browser and
-greps *your* code to see whether the removed API is one you actually call.
-
-> Express 5 removes `req.param()`. You call it in 3 files, in `service-desk` and
-> `staff-portal`. Upgrading without touching those breaks login in both.
-
-**Where your own projects contradict each other.** Not a linter — a linter compares your code to
-someone else's rule. This compares your projects to *each other*: containers running as root,
-missing healthchecks, five different base images for the same language, a secret sitting in a file
-git isn't tracking.
-
-**Your day, honestly.** It reads your calendar over its iCal address — Google, Outlook/M365 or Apple,
-no OAuth — and uses it to say what is realistic, not to manage it. When a block makes sense it sends
-a one-tap link; you confirm. It never writes to your calendar either.
-
-**Your Mac, when you have one.** If a Mac with Plow Latch is connected, it uses *your* browser with
-*your* logged-in sessions. If not, it uses the browser inside the container and says what it can and
-cannot reach. It checks before it promises.
-
-## Where you talk to it
-
-**iMessage**, and a **local web panel** at `127.0.0.1:9119` behind a login, bound to loopback only.
-You are not locked to one channel, and nothing goes through a third party.
-
-## What it does not do
-
-- **It never writes to your projects.** The folder is mounted read-only at the Docker level. It
-  cannot commit, push, branch, or edit — not by policy, by permission.
-- It does not manage your calendar or plan your day. It reads the calendar to tell you what fits.
-- It cannot see your editor, your terminal, or your AI coding session. It reads git, nothing else.
-- It does not read your code to a server. Your files stay on your machine; only what it needs to
-  answer you reaches the model.
-
-## Install
-
-One command:
+It reads your repositories and answers over iMessage: where you stopped in each project, which
+dependency is about to break *your* code, where your own projects contradict each other, and what
+actually fits in your day. It also speaks first — but only when something changed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.sh | sh
 ```
 
-It checks what you have, finds the folders that hold your git repositories and shows you the count,
-asks before every step that changes anything, and speaks English or Portuguese depending on your
-system. Answer `n` to any suggestion and it asks you to type the value instead.
+One command. It checks what you have, finds the folders holding your git repositories and shows the
+count, asks before every step that changes anything, and speaks English or Portuguese depending on
+your system.
 
-<details>
-<summary>Or do it by hand</summary>
+---
 
+## What it reads, and what it does with it
 
-You need [Docker](https://docs.docker.com/get-docker/), git, Python 3, and an iPhone or a Mac with
-Messages (to activate the line). Works on **Windows, Linux and macOS**.
+| Source | What it produces |
+|---|---|
+| `git log`, `status`, `rev-list` in every mounted repository | Where you stopped: the commit you were on, files changed and never saved, commits nobody received, branches never pushed |
+| File modification time | How long a project has been *actually* untouched. The commit date lies when a project never really made it into git |
+| `package.json`, `requirements*.txt` and the npm and PyPI registries | Which dependency is behind or deprecated, ordered by **how many of your projects it hits** |
+| That dependency's changelog, read in a real browser and cross-checked against your code | Whether the breaking change touches something you actually call |
+| Your Dockerfiles, compared to each other | Where your own projects disagree: containers as root, missing healthchecks, `:latest`, five base images for one language |
+| Files git is not tracking | A secret sitting in a file that was never committed, reported by path and kind, never by value |
+| Your calendar, over its iCal address | What is realistic today, and a one-tap link for a block of work |
+
+Two scheduled routines register themselves on first boot. The hourly one speaks only when a project
+**crosses** a threshold: two days idle with unsaved work, then four, then a week. The six-hourly one
+speaks only when a dependency changes state. Nothing changed means nothing sent and no tokens spent.
+
+## What this agent cannot reach
+
+- **Anything you did not mount.** It sees the folders the installer asked about and nothing else:
+  not the rest of your disk, not another drive, not your home directory.
+- **Write access to your projects.** The mount is `:ro`, enforced by Docker. It cannot commit, push,
+  branch or edit, not by policy but by permission. That is what makes handing it a folder of source
+  reasonable.
+- **Your calendar, beyond reading.** It never writes an event. It sends a link you tap.
+- **Your screen, your editor, your AI coding session.** It reads git. Nothing observes what you are
+  doing right now.
+- **Your machine, when it is off.** This runs in a container on your computer. Shut the computer
+  down and the agent stops with it.
+- **Anything behind a login**, unless a Mac with [Plow Latch](https://plow.co/latch) is connected. It
+  probes for one before it offers, because the platform advertises that capability to every agent
+  whether or not a Mac exists.
+
+## What only the owner can do
+
+**Texting the activation phrase.** Whoever texts it back *is* the account binding. The phrase and
+the number both come back from activation, so neither can be handed over in advance. The installer
+prints it and waits.
+
+**Choosing which folders are watched.** The installer proposes what it found and takes `n` for an
+answer. Nothing is mounted without a yes.
+
+**Pointing it at a calendar.** Optional and read-only: the secret iCal address that Google,
+Outlook/M365 and Apple all publish. Treat that address like a password, because anyone holding it
+reads your calendar without logging in.
+
+## Usage reporting
+
+This image carries a reporter that publishes token usage to the
+[Agent Index](https://aiworthusing.com/agent-index) once an hour: day by model counts and nothing
+else. No prompts, no task titles, no file paths, no code.
+
+**There is no switch.** It is in the image because it was built in, and that is the decision. A flag
+would only re-ask a question the Dockerfile already answered, somewhere that can disagree with it.
+
+For scale: a full day of development, testing and scheduled runs came to roughly 3.2 million tokens
+and 3.36 dollars of Plow inference credit, which the Plow account provides.
+
+## Run locally
 
 ```bash
-# 1. Get the credential CLI
 git clone https://github.com/plow-pbc/plow-agents.git
 export PATH="$PWD/plow-agents/bin:$PATH"
 
-# 2. Get this agent
-git clone <this-repo> checkpoint
-cd checkpoint
+git clone https://github.com/alvesoff/checkpoint.git && cd checkpoint
 
-# 3. Log in — it prints a phrase; text that whole phrase from your phone
 plow-agents login --new-line
-plow-agents lines            # copy the uid of a line marked "free"
-plow-agents mint ln_xxx      # writes ./plow-credentials
+plow-agents lines
+plow-agents mint ln_xxx
 
-# 4. Point it at your code and start it
-echo "CODE_DIR=/absolute/path/to/your/projects" > .env
+printf 'CODE_DIR=/path/to/your/projects\nTZ=America/Sao_Paulo\n' > .env
 docker compose up --build -d
 ```
 
-Then text the line's number: *"where did I leave off?"*
+`CODE_DIR` points at the folder that **contains** your projects. Repositories are found up to two
+levels down, so a folder of folders works. Extra folders go in `compose.override.yml`, the way the
+installer writes it.
 
-</details>
+`TZ` matters: the container is UTC by default, and a calendar read in the wrong timezone tells you a
+9am meeting is at noon.
 
-### Windows
+### On Windows
 
-Everything above works in Git Bash, with one thing to know:
+Call the CLI through `python`, not directly: the `python3` in its shebang resolves to the Microsoft
+Store alias. You do **not** need to touch `core.autocrlf` for this repository. The shipped
+`.gitattributes` pins every file to LF, which is what keeps a shell script inside the image from
+getting a stray carriage return in its shebang and parking the boot with an error about credentials.
 
-```bash
-# The shebang says python3, which Windows hijacks with a Microsoft Store alias.
-# Call the CLI through python instead.
-python plow-agents/bin/plow-agents login --new-line
-```
+## Layout
 
-You do **not** need to touch `core.autocrlf` for this repo — the shipped `.gitattributes` pins
-every file to LF, so a default Git-for-Windows clone still produces an image that boots. (Verified
-by cloning both ways.) That matters because the failure it prevents is nasty: Git converts the line
-endings, a shell script inside the image gets a `
-` in its shebang, and the container parks with an
-error message about *credentials* rather than line endings.
+| Path | What lives there |
+|---|---|
+| `runtime/persona.md` | Who the agent is and how it writes. Composed into `SOUL.md` at every boot |
+| `skills/where-i-left-off/` | Reading project state, and the hourly routine |
+| `skills/dependency-radar/` | Package inventory, registry check, and the six-hourly routine |
+| `skills/stack-audit/` | Cross-project consistency and the loose-secret sweep |
+| `skills/agenda/` | Calendar over iCal, and block proposals |
+| `skills/browsing/` | The browser, and deciding whether a Mac is actually there |
+| `image/s6-overlay/` | Boot services: the usage reporter, the Latch probe, the routine registration |
+| `install.sh` | The one-command install |
 
-### Pointing `CODE_DIR` at the right thing
+## Building the image
 
-Point it at the folder that **contains** your projects:
-
-```
-~/code/            <- CODE_DIR goes here
-  api/.git
-  frontend/.git
-  infra/.git
-```
-
-It looks one level deep, on purpose: a recursive walk would find every `node_modules` with a `.git`
-in it and take long enough to time out.
-
-Pointing it straight at a single project works too — it just watches that one.
-
-### Turning on the nudges
-
-Once, in the chat: *"start nudging me about stale work"* and *"watch my dependencies"*. Each
-registers a single scheduled check and will not create a second one if you ask again.
-
-### Optional: your calendar
-
-Give it the secret iCal address of your calendar (Google: *Calendar settings > Secret address in
-iCal format*; Outlook: *Calendar > Share > Publish > ICS*). Read-only, no OAuth, no account.
-
-### Optional: the web panel
-
-Set `PANEL_USER` and `PANEL_PASS` in `.env` and open `http://127.0.0.1:9119`.
-
-### Set your timezone
-
-`TZ=America/Sao_Paulo` in `.env`. The container is UTC by default, and a calendar read in the wrong
-timezone tells you a 9am meeting is at noon.
-
-## Verifying the read-only claim
-
-Don't take our word for it — the whole claim rests on two lines you can read yourself:
-
-- `compose.yml` mounts your folder with `:ro`. Docker enforces it; a write fails at the kernel.
-- `skills/where-i-left-off/scripts/scan_projects.py` is the only thing that touches your projects.
-  Every `git` call in it is `log`, `status`, `rev-list`, `rev-parse` or `remote`. No fetch, no
-  write, no network.
+`docker compose up --build` builds from `plow-hermes-agent`, pinned by digest. The usage reporter is
+fetched at build time from a pinned commit and checked against a sha256 beside it. A sha in a URL is
+only as good as the host serving it, and this runs inside an agent holding a live credential.
 
 ## Troubleshooting
 
 | What you see | What it is |
 |---|---|
-| "no git repository found in /projects" | `CODE_DIR` points at a folder with no repositories in it, or one level too high |
-| "none of the N repositories could be read by git" | Ownership mismatch between host and container. The image ships `/etc/gitconfig` with `safe.directory = *`; if you rebuilt from a modified Dockerfile, check it is still there |
-| Every file shows as unsaved | Your repos were cloned with CRLF and the index holds LF. The agent already normalizes for this — if you still see it, you are running an image built before that fix |
-| The agent offers to use your Mac | The platform injects that capability into every agent's description. This one does not do it; the persona says so explicitly |
-
-## How it is built
-
-A [Hermes agent](https://github.com/NousResearch/hermes-agent) on the
-[Plow base image](https://github.com/plow-pbc/plow-hermes-agent), reachable over iMessage. The
-scheduled check uses the runtime's `--monitor-script` mode: a cheap script prints a **stable
-signature** of what is stuck — bucketed by age, with no timestamps in it — and the agent is only
-woken when that signature changes. Idle state costs zero tokens.
-
-Usage is reported to the [Agent Index](https://aiworthusing.com/agent-index): day-by-model token
-counts, and nothing else. No prompts, no file paths, no code.
+| "no git repository found in /projects" | `CODE_DIR` points at a folder with no repositories, or one level too high |
+| "none of the N repositories could be read by git" | Ownership mismatch between host and container. The image ships `/etc/gitconfig` with `safe.directory = *` |
+| Every file shows as unsaved | Repositories cloned with CRLF against an LF index. The agent normalizes for this; if you still see it, the image predates that fix |
+| The agent offers to use your Mac | It should not, because it probes the relay first. If it happens, `PLOW_MCP_URL` survived without a device connected |
+| Nothing is ever sent | Expected while nothing crosses a threshold. `hermes cron runs` inside the container shows the checks happening |
 
 ## License
 
