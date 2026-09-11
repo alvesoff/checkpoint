@@ -41,13 +41,7 @@ INSTRUCAO = (
     "browsing, e busque com rg se o dono realmente usa o que foi removido nos projetos afetados. "
     "Componha UMA mensagem curta dizendo o que quebra e onde, ou, se nao quebrar nada que ele "
     "usa, diga isso, que e a melhor noticia. "
-    "\n\nENTREGA: mande a mensagem chamando a ferramenta plow_send_message, com "
-    "chat_id igual ao canal do dono, e depois responda exatamente NO_REPLY. "
-    "Nao escreva a mensagem como resposta do turno: a entrega automatica do cron "
-    "embrulha o texto com 'Cronjob Response', o id do job e instrucoes de "
-    "gerenciamento, que e lixo tecnico na conversa de quem usa isto. "
-    "Se a mudanca nao merecer interromper alguem, responda NO_REPLY e nao chame "
-    "ferramenta nenhuma."
+    "Mande UMA mensagem so. Se a mudanca nao merecer interromper alguem, responda NO_REPLY."
 )
 
 def destino() -> str:
@@ -64,7 +58,7 @@ def destino() -> str:
                 canal = f.read().strip()
         except OSError:
             canal = ""
-    return canal or "desta conversa"
+    return f"plow_chat:{canal}" if canal else "origin"
 
 
 def jobs_registrados() -> list[dict]:
@@ -105,15 +99,15 @@ def main() -> int:
     resultado = subprocess.run(
         [
             HERMES, "cron", "create", INTERVALO,
-            INSTRUCAO.replace("o canal do dono", f"o canal {destino()}"),
+            INSTRUCAO,
             "--name", NOME,
             # Sem isto o Hermes usa `local`: o agente compõe a mensagem e a grava
             # num arquivo dentro do container em vez de entregar. O aviso
             # proativo é metade deste produto, e sem destino ele simplesmente
             # nunca chega — sem erro nenhum, o que torna a falha invisível.
-            # O envelope do cron morre num arquivo; a mensagem de verdade vai pela
-            # ferramenta de chat, com o texto do agente e nada alem.
-            "--deliver", "local",
+            # O embrulho do cron fica desligado por config (cont-init 05-checkpoint-config),
+            # entao a entrega direta ja chega limpa.
+            "--deliver", destino(),
             "--monitor-script", "deps_digest.py",
             "--skill", "dependency-radar",
         ],

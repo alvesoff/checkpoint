@@ -1,0 +1,38 @@
+#!/bin/sh
+# Desliga o embrulho que o cron coloca em volta da resposta entregue.
+#
+# Sem isto, todo aviso proativo chega ao dono assim:
+#
+#   Cronjob Response: checkpoint-nudge
+#   (job_id: b51718f5d934)
+#   -------------
+#   <a mensagem>
+#   To stop or manage this job, send me a new message ...
+#
+# Numa ferramenta interna passa; num produto que estranhos instalam, é o agente
+# vazando a própria plumbing na conversa — e o aviso proativo é metade deste
+# produto, então isso apareceria toda vez.
+#
+# O próprio `cron/scheduler.py` documenta a chave: "Wrapping is on by default;
+# set cron.wrap_response: false in config.yaml for clean output."
+#
+# Roda a cada boot, e não só na primeira instalação, porque a home é um volume
+# que sobrevive a `docker compose down` — mas o config.yaml pode ser recriado
+# pelo runtime, e um agente que volta a embrulhar depois de uma atualização é
+# uma regressão silenciosa.
+set -eu
+
+CONFIG=/var/lib/hermes/config.yaml
+
+[ -f "$CONFIG" ] || exit 0
+grep -q '^[[:space:]]*wrap_response:' "$CONFIG" && exit 0
+
+# Insere a chave dentro da seção `cron:` que a imagem base já escreve. Se um dia
+# ela deixar de existir, cria a seção no fim — nunca falha o boot por isso.
+if grep -q '^cron:' "$CONFIG"; then
+  sed -i 's/^cron:$/cron:\n  wrap_response: false/' "$CONFIG"
+else
+  printf '\ncron:\n  wrap_response: false\n' >> "$CONFIG"
+fi
+
+echo "[checkpoint] cron.wrap_response=false — o aviso chega sem envelope"

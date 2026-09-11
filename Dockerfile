@@ -54,3 +54,8 @@ RUN find /opt/hermes/skills -mindepth 1 -type d -exec chmod 0755 {} + \
 # o arquivo existe na imagem e some no container. Custou um diagnostico: 25
 # repositorios montados apareciam como "nenhum projeto ativo".
 RUN printf '[safe]\n\tdirectory = *\n' > /etc/gitconfig && chmod 0644 /etc/gitconfig
+
+# Desliga o embrulho do cron na resposta entregue. Ver o proprio script: sem isso
+# todo aviso proativo chega com "Cronjob Response", id do job e instrucoes de
+# gerenciamento no meio da mensagem.
+COPY --chmod=0755 image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-config
