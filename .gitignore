@@ -2,3 +2,5 @@ plow-credentials
 plow-credentials.*
 .env
 projects/
+__pycache__/
+*.pyc
