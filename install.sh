@@ -365,19 +365,32 @@ if [ ! -f plow-credentials ]; then
   echo
   tutorial_da_linha
   echo
-  if $PLOW lines 2>/dev/null | grep -q free; then
-    $PLOW login || erro "Login failed." "Login falhou."
-  else
-    # --new-line aloca um número na conta e não tem como desfazer, então só é
-    # usado quando não existe nenhuma linha livre.
-    confirmar "You have no free line. Ask Plow for one? (cannot be undone)" \
-              "Você não tem linha livre. Pedir uma ao Plow? (não dá para desfazer)" s \
-      || erro "Cannot continue without a line." "Não dá para continuar sem uma linha."
-    $PLOW login --new-line || erro "Login failed." "Login falhou."
+  # Sem token de conta salvo, `lines` falha por falta de login, e não por
+  # falta de linha. Confundir as duas coisas faz o instalador oferecer uma
+  # linha nova -- que não tem como desfazer -- a quem já tem uma parada na
+  # conta. Então: primeiro entrar, depois olhar o que existe.
+  if ! $PLOW lines >/dev/null 2>&1; then
+    $PLOW login || {
+      msg "That login did not go through. That happens when the account does not exist yet." \
+          "Esse login não foi concluído. Acontece quando a conta ainda não existe."
+      confirmar "Ask Plow for a new account and line? (cannot be undone)" \
+                "Pedir ao Plow uma conta e uma linha novas? (não dá para desfazer)" s \
+        || erro "Cannot continue without a line." "Não dá para continuar sem uma linha."
+      $PLOW login --new-line || erro "Login failed." "Login falhou."
+    }
   fi
 
+  # --new-line aloca um número na conta e não tem como desfazer, então só
+  # entra em cena depois de olhar as linhas que a conta já tem.
   LINHA=$($PLOW lines 2>/dev/null | awk '$NF=="free"{print $1; exit}')
-  [ -n "$LINHA" ] || erro "No free line on this account." "Nenhuma linha livre nesta conta."
+  if [ -z "$LINHA" ]; then
+    confirmar "No free line on this account. Ask Plow for one? (cannot be undone)" \
+              "Nenhuma linha livre nesta conta. Pedir uma ao Plow? (não dá para desfazer)" s \
+      || erro "Cannot continue without a line." "Não dá para continuar sem uma linha."
+    $PLOW login --new-line || erro "Login failed." "Login falhou."
+    LINHA=$($PLOW lines 2>/dev/null | awk '$NF=="free"{print $1; exit}')
+    [ -n "$LINHA" ] || erro "Still no free line on this account." "Continua sem linha livre nesta conta."
+  fi
   msg "Using line $LINHA." "Usando a linha $LINHA."
   $PLOW mint "$LINHA" || erro "Could not mint the credential." "Não consegui gerar a credencial."
 fi
