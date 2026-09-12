@@ -69,11 +69,32 @@ confirmar() { # confirmar <pergunta en> <pergunta pt> <padrao s|n>
   esac
 }
 
+# Quem chama esta funcao captura a saida dela com $(...), entao tudo que for
+# escrito em stdout vira a resposta em vez de aparecer na tela. O rotulo vai
+# para stderr: e o unico jeito de a pergunta ser vista e nao ser lida de volta
+# como se fosse o que a pessoa digitou.
 perguntar() { # perguntar <rotulo en> <rotulo pt> ; ecoa a resposta
   rotulo=$([ "$IDIOMA" = pt ] && printf '%s' "$2" || printf '%s' "$1")
-  printf '%s ' "$rotulo"
+  printf '%s ' "$rotulo" >&2
   read -r valor <&3 || valor=""
   printf '%s' "$valor"
+}
+
+# No Windows a pessoa copia o caminho do Explorer e cola do jeito que veio:
+# C:\Users\alguem\projetos. O bash do MSYS quer /c/Users/alguem/projetos.
+# Recusar o formato que ela tem na mao seria implicancia, nao validacao.
+normalizar_caminho() {
+  bruto=$(printf '%s' "$1" | tr '\\' '/')
+  case "$bruto" in
+    "~/"*) printf '%s/%s' "$HOME" "${bruto#~/}" ; return ;;
+  esac
+  case "$bruto" in
+    [A-Za-z]:/*)
+      unidade=$(printf '%s' "$bruto" | cut -c1 | tr '[:upper:]' '[:lower:]')
+      printf '/%s%s' "$unidade" "$(printf '%s' "$bruto" | cut -c3-)"
+      ;;
+    *) printf '%s' "$bruto" ;;
+  esac
 }
 
 erro() { msg "$1" "$2" >&2; exit 1; }
@@ -122,9 +143,19 @@ msg "Docker, git and Python: found." "Docker, git e Python: encontrados."
 
 DESTINO="${CHECKPOINT_DIR:-$HOME/checkpoint}"
 if [ -e "$DESTINO" ]; then
-  confirmar "Directory $DESTINO already exists. Use it anyway?" \
-            "A pasta $DESTINO já existe. Usar assim mesmo?" n \
-    || DESTINO=$(perguntar "Install into which directory?" "Instalar em qual pasta?")
+  # Uma pasta que ja tem o repo clonado dentro nao e uma pasta ocupada por
+  # engano: e uma tentativa anterior que parou no meio, e a instalacao demora
+  # o bastante para isso ser comum. Ai o padrao e continuar. Qualquer outra
+  # pasta que ja exista continua com o padrao seguro, que e nao mexer.
+  if [ -d "$DESTINO/.git" ] && [ -f "$DESTINO/compose.yml" ]; then
+    confirmar "Found an earlier install in $DESTINO. Continue from it?" \
+              "Encontrei uma instalação anterior em $DESTINO. Continuar dela?" s \
+      || DESTINO=$(normalizar_caminho "$(perguntar "Install into which directory?" "Instalar em qual pasta?")")
+  else
+    confirmar "Directory $DESTINO already exists. Use it anyway?" \
+              "A pasta $DESTINO já existe. Usar assim mesmo?" n \
+      || DESTINO=$(normalizar_caminho "$(perguntar "Install into which directory?" "Instalar em qual pasta?")")
+  fi
 fi
 [ -n "$DESTINO" ] || erro "No directory given." "Nenhuma pasta informada."
 
@@ -147,12 +178,39 @@ PLOW="$PY tools/plow-agents/bin/plow-agents"
 # A sugestão é sempre confirmada. Montar a pasta de código de alguém sem
 # perguntar seria abuso, mesmo sendo somente leitura.
 CANDIDATAS=""
-for candidata in "$HOME/code" "$HOME/projects" "$HOME/Projetos" "$HOME/dev" "$HOME/src"                  "$HOME/repos" "$HOME/git" "$HOME/workspace"                  "$HOME/Desktop/Projetos" "$HOME/Desktop/projects" "$HOME/Desktop/code"                  "$HOME/Documents/GitHub" "$HOME/Documents/Projetos"; do
+# Uma por linha, relativas ao HOME, para a lista poder crescer sem virar uma
+# linha de duzentas colunas. As do OneDrive nao sao luxo: no Windows atual o
+# Desktop e o Documentos costumam estar redirecionados para la, e entao os
+# caminhos sem OneDrive simplesmente nao existem.
+while IFS= read -r relativo; do
+  [ -n "$relativo" ] || continue
+  candidata="$HOME/$relativo"
   [ -d "$candidata" ] || continue
   n=$(find "$candidata" -maxdepth 2 -name .git -type d 2>/dev/null | wc -l | tr -d " ")
   [ "$n" -gt 0 ] && CANDIDATAS="$CANDIDATAS$candidata|$n
 "
-done
+done <<'LUGARES'
+code
+projects
+Projetos
+dev
+src
+repos
+git
+workspace
+Desktop/Projetos
+Desktop/projects
+Desktop/code
+Documents/GitHub
+Documents/Projetos
+OneDrive/Desktop/Projetos
+OneDrive/Desktop/projects
+OneDrive/Desktop/code
+OneDrive/Documents/GitHub
+OneDrive/Documentos/GitHub
+OneDrive/Projetos
+OneDrive/code
+LUGARES
 
 ESCOLHIDAS=""
 if [ -n "$CANDIDATAS" ]; then
@@ -174,13 +232,28 @@ if [ -n "$CANDIDATAS" ]; then
   fi
 fi
 
+# Sem saida, este laco e infinito numa maquina sem projeto nenhum — a recem
+# formatada, e a de quem so quer testar a instalacao. Entao Enter vazio tem
+# resposta: cria uma pasta e segue, ou para com um motivo dito em voz alta.
 while [ -z "$(printf '%s' "$ESCOLHIDAS" | tr -d '[:space:]')" ]; do
-  entrada=$(perguntar "Full path of a folder that CONTAINS your projects:"                       "Caminho completo de uma pasta que CONTÉM seus projetos:")
-  if [ -d "$entrada" ]; then
+  msg "Paste the folder that CONTAINS your projects. A Windows path works." \
+      "Cole a pasta que CONTÉM seus projetos. Caminho do Windows serve."
+  entrada=$(normalizar_caminho "$(perguntar "Folder (Enter to skip):" "Pasta (Enter para pular):")")
+  if [ -z "$entrada" ]; then
+    if confirmar "No folder given. Create $HOME/projects and use that?" \
+                 "Nenhuma pasta informada. Criar $HOME/projects e usar essa?" s; then
+      mkdir -p "$HOME/projects"
+      ESCOLHIDAS="$HOME/projects
+"
+    else
+      erro "The agent needs at least one folder to watch." \
+           "O agente precisa de pelo menos uma pasta para acompanhar."
+    fi
+  elif [ -d "$entrada" ]; then
     ESCOLHIDAS="$entrada
 "
   else
-    msg "That path does not exist." "Esse caminho não existe."
+    msg "That path does not exist: $entrada" "Esse caminho não existe: $entrada"
   fi
 done
 
