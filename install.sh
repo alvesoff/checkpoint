@@ -292,10 +292,62 @@ confirmar "Timezone $FUSO — is that right?" "Fuso horário $FUSO — está cer
 
 # ---------------------------------------------------------------- linha e credencial
 
+# Este e o passo com mais desistencia do instalador, por dois motivos que nao
+# sao culpa de quem instala: ele e manual no meio de um processo automatico, e a
+# saida vem da CLI do Plow, em ingles, dizendo o que digitar mas nao o que fazer.
+# Traduzir a saida dela nao da -- e processo de terceiro, esperando em tempo
+# real. O que da e dizer antes o que vai aparecer e o que fazer com aquilo.
+tutorial_da_linha() {
+  if [ "$IDIOMA" = pt ]; then
+    cat <<'PT'
+Agora a linha telefônica. Este passo é manual, e a saída abaixo vem em inglês,
+assim:
+
+    Text  Plow Activate: XXXXX  to  +1 650 ...
+    Waiting for that text ...
+
+O que fazer, na ordem:
+
+  1. Abra o app Mensagens (iMessage) no seu iPhone ou Mac.
+  2. Comece uma mensagem para o número que aparecer depois de "to".
+  3. Mande exatamente o texto que aparecer entre "Text" e "to", com o código.
+  4. Volte aqui e espere. O terminal segue sozinho quando a mensagem chegar —
+     "Waiting for that text ..." é justamente ele esperando.
+
+Três coisas que costumam derrubar este passo:
+
+  - O código vale 15 minutos e serve uma vez só. Se expirar, rode de novo.
+  - Quem manda a mensagem vira o dono do agente. Mande do seu próprio telefone.
+  - É iMessage. Sem iPhone nem Mac, este passo não tem como ser concluído.
+PT
+  else
+    cat <<'EN'
+Now the phone line. This step is manual, and the output below comes from Plow,
+like this:
+
+    Text  Plow Activate: XXXXX  to  +1 650 ...
+    Waiting for that text ...
+
+What to do, in order:
+
+  1. Open Messages (iMessage) on your iPhone or Mac.
+  2. Start a message to the number shown after "to".
+  3. Send exactly the text shown between "Text" and "to", code included.
+  4. Come back here and wait. The terminal moves on by itself once the message
+     lands -- "Waiting for that text ..." is it waiting.
+
+Three things that usually break this step:
+
+  - The code lasts 15 minutes and works once. If it expires, run this again.
+  - Whoever sends the message becomes the owner. Send it from your own phone.
+  - It is iMessage. Without an iPhone or a Mac, this step cannot be completed.
+EN
+  fi
+}
+
 if [ ! -f plow-credentials ]; then
   echo
-  msg "Now the phone line. Plow will print a phrase — text that WHOLE phrase from your phone." \
-      "Agora a linha telefônica. O Plow vai imprimir uma frase — mande a frase INTEIRA do seu celular."
+  tutorial_da_linha
   echo
   if $PLOW lines 2>/dev/null | grep -q free; then
     $PLOW login || erro "Login failed." "Login falhou."
