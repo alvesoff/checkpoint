@@ -163,10 +163,26 @@ fi
 # LF), mas é para o plow-agents, que não tem um.
 if [ ! -d "$DESTINO/.git" ]; then
   git clone -q https://github.com/alvesoff/checkpoint.git "$DESTINO"
+else
+  # Retomando uma tentativa anterior: o clone que esta ali pode ser de antes da
+  # correcao que a pessoa esta tentando usar agora. --ff-only nunca reescreve
+  # trabalho local; se nao der, segue com o que ja existe.
+  git -C "$DESTINO" pull -q --ff-only 2>/dev/null || msg     "Could not update the local copy. Continuing with what is there."     "Não consegui atualizar a cópia local. Seguindo com a que está aqui."
 fi
 cd "$DESTINO"
 
 [ -d tools/plow-agents ] || git clone -q -c core.autocrlf=false https://github.com/plow-pbc/plow-agents.git tools/plow-agents
+
+# Sem isto a CLI do Plow nao consegue gravar o token no Windows, e a instalacao
+# morre depois da ativacao por iMessage -- com a mensagem ja mandada e o codigo
+# ja gasto. Roda toda vez porque o clone pode ser de agora e um git pull na CLI
+# desfaz a edicao; aplicar duas vezes nao faz nada.
+if [ -f tools/patch-plow-windows.py ]; then
+  $PY tools/patch-plow-windows.py tools/plow-agents/bin/plow-agents
+else
+  msg "Local copy is older than this installer; the Plow CLI may fail to save the token on Windows."       "A cópia local é mais antiga que este instalador; no Windows a CLI do Plow pode falhar ao salvar o token."
+fi
+
 PLOW="$PY tools/plow-agents/bin/plow-agents"
 
 # ---------------------------------------------------------------- pastas de código
