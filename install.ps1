@@ -106,7 +106,7 @@ function Invoke-CheckpointInstall {
 
   # O bash do MSYS entende o caminho em formato POSIX sem reconversão.
   $unidade = $destino.Substring(0, 1).ToLower()
-  $caminhoPosix = "/$unidade" + ($destino.Substring(2) -replace '\', '/')
+  $caminhoPosix = "/$unidade" + $destino.Substring(2).Replace([char]92, [char]47)
 
   & $bash $caminhoPosix
   $codigo = $LASTEXITCODE
