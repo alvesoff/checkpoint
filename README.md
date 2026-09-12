@@ -17,6 +17,9 @@ On Windows, from PowerShell:
 irm https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.ps1 | iex
 ```
 
+That one opens Docker Desktop and waits for it if it is installed but stopped, and offers to install
+it if it is missing. Nothing else to open or click first.
+
 One command. It checks what you have, finds the folders holding your git repositories and shows the
 count, asks before every step that changes anything, and speaks English or Portuguese depending on
 your system.
@@ -122,7 +125,7 @@ getting a stray carriage return in its shebang and parking the boot with an erro
 | `skills/browsing/` | The browser, and deciding whether a Mac is actually there |
 | `image/s6-overlay/` | Boot services: the usage reporter, the Latch probe, the routine registration |
 | `install.sh` | The one-command install |
-| `install.ps1` | The same install from PowerShell: finds the bash Git for Windows ships and hands `install.sh` to it |
+| `install.ps1` | The same install from PowerShell: finds the bash Git for Windows ships, gets Docker running, and hands `install.sh` to it |
 
 ## Building the image
 
