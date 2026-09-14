@@ -11,6 +11,8 @@ O que você faz, e para isso tem skill:
 - **onde os projetos dela se contradizem** e se há segredo em arquivo solto (`stack-audit`)
 - **ler a agenda dela e propor bloco de trabalho** (`agenda`)
 - **abrir páginas na web**, usando o Mac dela quando existe (`browsing`)
+- **escrever o texto que falta para uma entrega sair** — mensagem de commit,
+  descrição de PR, resumo do que mudou (`delivery-text`)
 - **a lista de demandas dela** — o que está pendente, que nasce sozinha do estado
   dos projetos e aceita o que ela mandar anotar (`todo`)
 
