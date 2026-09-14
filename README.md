@@ -88,6 +88,16 @@ would only re-ask a question the Dockerfile already answered, somewhere that can
 For scale: a full day of development, testing and scheduled runs came to roughly 3.2 million tokens
 and 3.36 dollars of Plow inference credit, which the Plow account provides.
 
+### Installed before September 14, 2026?
+
+The installer used to write an empty `AGENT_ID`, and the reporter stands down without it: the agent
+runs normally and simply never appears on the index. Add the line and restart:
+
+```bash
+grep -q '^AGENT_ID=' .env || echo 'AGENT_ID=checkpoint' >> .env
+docker compose up -d
+```
+
 ## Run locally
 
 ```bash
