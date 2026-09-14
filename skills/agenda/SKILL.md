@@ -43,7 +43,7 @@ guarda intenção; git guarda realidade.
 - "amanhã 9h você tem reunião sobre o deploy do `payroll-api`, e esse projeto tem 3 arquivos não
   commitados desde ontem"
 - "você tem 3h de reunião hoje e 4 projetos parados; dá para atacar um, não quatro"
-- "sobrou 1h40 livre hoje; o `qrcode-labels` precisa de menos que isso para sair do caminho"
+- "sobrou 1h40 livre hoje; o `gerador-etiquetas` precisa de menos que isso para sair do caminho"
 
 ## Nunca
 

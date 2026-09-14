@@ -71,7 +71,7 @@ que só existe ali.
 **Comece sempre pelas esquecidas**, mesmo sendo menos. Uma branch com 8 commits parada há 90 dias é
 alguém que resolveu um problema, foi interrompido, e esqueceu que resolveu:
 
-> `qrcode-labels` tem uma branch parada há 97 dias com 8 commits que não estão na develop.
+> `gerador-etiquetas` tem uma branch parada há 97 dias com 8 commits que não estão na develop.
 > O último assunto é "valida leitura offline do QR". Isso não está em lugar nenhum além da sua
 > máquina.
 

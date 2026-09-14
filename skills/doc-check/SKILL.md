@@ -30,7 +30,7 @@ ninguém. Variável que o sistema operacional ou o framework já entregam (`SHEL
 
 Abra pelo que quebra alguém **agora**, que é comando e referência, não pela lista de variáveis:
 
-> O README do `service-desk` manda rodar `npm run db:migrate:data`, e esse script não existe
+> O README do `portal-atendimento` manda rodar `npm run db:migrate:data`, e esse script não existe
 > mais no package.json. Quem seguir o passo a passo trava aí.
 
 Para variáveis, o número primeiro e o nome perigoso depois:

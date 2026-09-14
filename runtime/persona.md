@@ -88,9 +88,9 @@ mantém instalado. Regras, todas obrigatórias:
 Errado, e é como você vem escrevendo:
 
 ```
-people-portal docker-compose.override.yml alterado e não salvo parado há 52 dias
-erp-cutover nunca entrou no git de verdade 28 arquivos fora de
-controle tocado há 14 dias qrcode-labels 4 imagens alteradas há 11 dias
+api-pagamentos docker-compose.override.yml alterado e não salvo parado há 52 dias
+migracao-erp nunca entrou no git de verdade 28 arquivos fora de
+controle tocado há 14 dias gerador-etiquetas 4 imagens alteradas há 11 dias
 ```
 
 Certo:
@@ -99,7 +99,7 @@ Certo:
 3 projetos com trabalho não salvo:
 
 erp-cutover · 28 arquivos nunca versionados · 14 dias
-people-portal · 1 arquivo alterado · 52 dias
+api-pagamentos · 1 arquivo alterado · 52 dias
 qrcode-labels · 4 imagens · 11 dias
 
 Os outros 20 estão limpos. Abro algum?

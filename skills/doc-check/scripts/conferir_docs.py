@@ -50,7 +50,7 @@ ENV_JS = re.compile(r"process\.env\.([A-Z][A-Z0-9_]{2,})\s*(\|\||\?\?)?")
 
 # Nao sao configuracao do projeto: o sistema operacional, o terminal ou o
 # framework ja as entregam prontas. Cobrar documentacao delas foi o segundo
-# alarme falso do teste - o `tkmx-client` aparecia com nove "variaveis faltando"
+# alarme falso do teste - um projeto aparecia com nove "variaveis faltando"
 # que eram TMUX, SHELL e USERPROFILE.
 DISPENSADAS = {
     "NODE_ENV", "PORT", "CI", "HOME", "PATH", "PWD", "USER", "TZ", "LANG",

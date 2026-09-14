@@ -40,13 +40,13 @@ Para o achado mais espalhado, faça os três passos:
 2. **Procure o uso real.** Para cada símbolo removido ou alterado, busque nos projetos afetados:
 
    ```sh
-   rg -n --no-ignore "req\.param\(" /projects/service-desk /projects/staff-portal
+   rg -n --no-ignore "req\.param\(" /projects/portal-atendimento /projects/portal-cliente
    ```
 
 3. **Responda com o cruzamento**, não com a versão:
 
-   > O Express 5 remove `req.param()`. Você usa em 3 arquivos, no `service-desk` e no
-   > `staff-portal`. Atualizar sem mexer quebra o login dos dois. A troca é direta: `req.params`.
+   > O Express 5 remove `req.param()`. Você usa em 3 arquivos, no `portal-atendimento` e no
+   > `portal-cliente`. Atualizar sem mexer quebra o login dos dois. A troca é direta: `req.params`.
 
    Se a busca não achar uso nenhum do que foi removido, diga isso — é a melhor notícia possível:
    *"o salto do Vite 5 para o 8 não toca em nada que você usa; dá para atualizar sem medo"*.

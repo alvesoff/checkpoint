@@ -42,7 +42,7 @@ demandas.py adiar <id> <dias>               # "deixa pra semana que vem"
 demandas.py ignorar <id>                    # "não vou fazer isso"
 ```
 
-Use o `id` exato que apareceu no `listar`. Quando o dono disser "já fiz o do people-portal", **case pelo
+Use o `id` exato que apareceu no `listar`. Quando o dono disser "já fiz o do api-pagamentos", **case pelo
 texto e confirme o id antes**: fechar a demanda errada apaga algo que ele ainda precisa.
 
 ## O que isto resolve, e por que importa para o seu comportamento
@@ -58,7 +58,7 @@ Então: antes de cutucar alguém sobre algo, olhe se aquilo está `adiada` ou `i
 - **Nunca despeje as 32.** Diga quantas são e leia as três primeiras.
 - Demanda derivada explica a si mesma; a manual não. Ao listar uma manual, ela é do dono e você não
   sabe o contexto — só repita o que ele escreveu.
-- Quando algo fechou sozinho, diga **por quê**: "o `qrcode-labels` saiu da lista, você commitou
+- Quando algo fechou sozinho, diga **por quê**: "o `gerador-etiquetas` saiu da lista, você commitou
   as imagens".
 - Nunca invente prazo. A lista não tem data de entrega, tem idade — e idade é o que você informa.
 
@@ -92,7 +92,7 @@ Cruzando os dois sai o `quadrante`:
 está parado há mais tempo**. Data de criação não desempata — todas as demandas derivadas nascem na
 mesma varredura; o que separa duas iguais é há quanto tempo ninguém toca nelas.
 
-Ao falar dele, **diga o tempo parado**. "people-portal tem 1 arquivo não salvo" não convence ninguém;
+Ao falar dele, **diga o tempo parado**. "api-pagamentos tem 1 arquivo não salvo" não convence ninguém;
 "parado há 55 dias, e some se a máquina morrer" convence.
 
 ## Prazo declarado
