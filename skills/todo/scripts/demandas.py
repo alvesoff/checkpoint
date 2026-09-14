@@ -133,6 +133,42 @@ def derivadas() -> dict[str, dict]:
             "projeto": nome, "origem": "seguranca", "peso": 2,
         }
 
+    # Branch esquecida: tem commit que nao existe em mais lugar nenhum. Entra
+    # na lista; branch ja mesclada NAO entra - e limpeza, e uma lista com treze
+    # "apague isto" some debaixo do proprio peso e esconde o que importa.
+    branches = rodar(f"{SKILLS}/stack-audit/scripts/branches.py")
+    for b in branches.get("esquecidas_nao_mescladas", [])[:10]:
+        achadas[f"branch:esquecida:{b['projeto']}:{b['branch']}"] = {
+            "texto": (f"{b['projeto']}: a branch {b['branch']} esta parada ha {int(b['dias'])} dias "
+                      f"com {b['commits_so_dela']} commits que nao estao no principal"),
+            "projeto": b["projeto"], "origem": "git", "peso": 3,
+        }
+
+    # Documentacao que deixou de bater com o codigo. Duas demandas por projeto no
+    # maximo: uma para o que quebra quem segue o documento agora (comando que
+    # sumiu, caminho que nao existe) e outra para a configuracao que falta.
+    docs = rodar(f"{SKILLS}/doc-check/scripts/conferir_docs.py")
+    for r in docs.get("relatorios", [])[:10]:
+        nome = r["projeto"]
+        erradas = len(r.get("referencias_quebradas", [])) + len(r.get("comandos_que_sumiram", []))
+        if erradas:
+            primeiro = (r["comandos_que_sumiram"] or
+                        [q["aponta_para"] for q in r["referencias_quebradas"]])[0]
+            achadas[f"doc:quebrado:{nome}"] = {
+                "texto": (f"{nome}: a documentacao manda usar {primeiro}, que nao existe mais"
+                          if erradas == 1 else
+                          f"{nome}: a documentacao aponta para {erradas} coisas que nao existem "
+                          f"mais, comecando por {primeiro}"),
+                "projeto": nome, "origem": "documentacao", "peso": 2,
+            }
+        faltando = r.get("variaveis_exigidas_sem_documentacao") or []
+        if faltando:
+            achadas[f"doc:env:{nome}"] = {
+                "texto": (f"{nome} exige {len(faltando)} variaveis que nenhum documento cita "
+                          f"({', '.join(faltando[:3])}): noutra maquina o projeto nao sobe"),
+                "projeto": nome, "origem": "documentacao", "peso": 2,
+            }
+
     return achadas
 
 
