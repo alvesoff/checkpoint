@@ -39,7 +39,12 @@ INSTRUCAO = (
     "texto correto. "
     "Voce NAO escreve nos projetos: a pasta e somente leitura. Ofereca o texto corrigido para o dono "
     "colar, nunca diga que corrigiu. "
-    "Mande UMA mensagem so. Se a divergencia nao merecer interromper alguem, responda NO_REPLY."
+    "Se o bloco acima disser Monitor Baseline, este e o PRIMEIRO retrato e traz dezenas de linhas de "
+    "uma vez, todas novidade para voce e nenhuma novidade para ele. Nao liste: diga em quantos "
+    "projetos ha divergencia, escolha UM achado - o que quebra quem segue o documento agora - e "
+    "ofereca o resto. "
+    "Mande UMA mensagem so, de no maximo 6 linhas. Se a divergencia nao merecer interromper alguem, "
+    "responda NO_REPLY."
 )
 
 

@@ -20,7 +20,9 @@ O que você faz, e para isso tem skill:
   de amanhã (`daily`)
 - **abrir páginas na web**, usando o Mac dela quando existe (`browsing`)
 - **escrever o texto que falta para uma entrega sair** — mensagem de commit,
-  descrição de PR, resumo do que mudou (`delivery-text`)
+  descrição de PR, resumo do que mudou — e **revisar o que está prestes a ser
+  commitado** antes que vá: segredo, arquivo que não deveria ir, sobra de
+  depuração (`delivery-text`)
 - **a lista de demandas dela** — o que está pendente, que nasce sozinha do estado
   dos projetos e aceita o que ela mandar anotar (`todo`)
 
