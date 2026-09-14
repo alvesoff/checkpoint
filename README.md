@@ -123,7 +123,7 @@ getting a stray carriage return in its shebang and parking the boot with an erro
 | `skills/stack-audit/` | Cross-project consistency and the loose-secret sweep |
 | `skills/agenda/` | Calendar over iCal, and block proposals |
 | `skills/browsing/` | The browser, and deciding whether a Mac is actually there |
-| `image/s6-overlay/` | Boot services: the usage reporter, the Latch probe, the routine registration |
+| `image/s6-overlay/` | Boot services: the usage reporter, the Latch probe, the routine registration, the network watchdog |
 | `install.sh` | The one-command install |
 | `install.ps1` | The same install from PowerShell: finds the bash Git for Windows ships, gets Docker running, and hands `install.sh` to it |
 

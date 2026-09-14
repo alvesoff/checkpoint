@@ -71,3 +71,24 @@ Registre uma vez, quando o dono pedir para ser avisado:
 ```sh
 python3 /opt/hermes/skills/dependency-radar/scripts/register_radar.py
 ```
+
+## Vulnerabilidade conhecida
+
+```sh
+python3 /opt/hermes/skills/dependency-radar/scripts/vulneraveis.py
+```
+
+Consulta a base pública da OSV com as versões que os manifestos declaram. Devolve os achados
+ordenados por gravidade e, dentro dela, por **quantos projetos cada um atinge** — que é a ordem em
+que se conserta quando se tem vinte repositórios.
+
+| Campo | Como ler |
+|---|---|
+| `pior` | `CRITICAL` e `HIGH` merecem interromper alguém. `MODERATE` e abaixo vão para a lista, não para o chat |
+| `nao-consultada` | A gravidade **não foi buscada** para esse pacote, porque só os 12 mais espalhados são detalhados. Não é "sem problema" — é ausência de dado, e diga assim |
+| `quantos` | Em quantos projetos aparece. É o que `npm audit` não responde, porque ele olha um projeto de cada vez |
+
+**Sempre declare o limite ao falar disso:** são as versões **declaradas no manifesto**, não as
+resolvidas pelo lockfile. Um alarme sobre versão que o lockfile já corrigiu ensina a pessoa a
+ignorar os alarmes verdadeiros — então diga "declarada no package.json" e sugira conferir o
+lockfile antes de mexer.

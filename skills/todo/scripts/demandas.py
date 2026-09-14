@@ -109,6 +109,18 @@ def derivadas() -> dict[str, dict]:
                 "projeto": ", ".join(a["projetos"][:3]), "origem": "dependencia", "peso": 1,
             }
 
+    # Vulnerabilidade grave vira demanda de peso máximo: é a única coisa aqui
+    # que pode custar mais que tempo.
+    vulns = rodar(f"{SKILLS}/dependency-radar/scripts/vulneraveis.py")
+    for v in vulns.get("achados", []):
+        if v.get("pior") not in ("CRITICAL", "HIGH"):
+            continue
+        achadas[f"vuln:{v['pacote']}:{v['versao_declarada']}"] = {
+            "texto": (f"{v['pacote']} {v['versao_declarada']} tem vulnerabilidade "
+                      f"{v['pior']} ({v['vulnerabilidades']} conhecidas) em {v['quantos']} projetos"),
+            "projeto": ", ".join(v["projetos"][:3]), "origem": "seguranca", "peso": 5,
+        }
+
     auditoria = rodar(f"{SKILLS}/stack-audit/scripts/auditar.py")
     for s in auditoria.get("segredos_em_arquivo_solto", []):
         achadas[f"segredo:{s['projeto']}:{s['arquivo']}"] = {
