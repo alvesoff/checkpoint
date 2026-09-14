@@ -36,12 +36,21 @@ NOME = "checkpoint-radar"
 INTERVALO = "every 6h"
 
 INSTRUCAO = (
-    "Uma dependencia mudou de estado. A mudanca esta no bloco MONITOR acima, no formato "
-    "pacote|estado|quantos-projetos. Pegue a mais espalhada, abra o changelog dela com a skill "
-    "browsing, e busque com rg se o dono realmente usa o que foi removido nos projetos afetados. "
-    "Componha UMA mensagem curta dizendo o que quebra e onde, ou, se nao quebrar nada que ele "
-    "usa, diga isso, que e a melhor noticia. "
-    "Mande UMA mensagem so. Se a mudanca nao merecer interromper alguem, responda NO_REPLY."
+    "Algo mudou nas dependencias do dono. A mudanca esta no bloco MONITOR acima. "
+    "Duas familias de linha, e a ORDEM IMPORTA: "
+    "VULN|pacote|versao|gravidade|quantos-projetos e ATRAS|pacote|estado|quantos-projetos. "
+    "Se houver QUALQUER linha VULN, ela vem primeiro e manda na mensagem: e o unico achado deste "
+    "agente que custa mais que tempo. Diga o pacote, a gravidade, em quantos projetos aparece e "
+    "quais sao os principais. Declare sempre o limite: e a versao DECLARADA no manifesto, nao a "
+    "resolvida pelo lockfile, entao sugira conferir o lockfile antes de mexer. "
+    "Se so houver linhas ATRAS, pegue a mais espalhada, abra o changelog dela com a skill browsing, "
+    "e busque com rg se o dono realmente usa o que foi removido nos projetos afetados. Componha UMA "
+    "mensagem curta dizendo o que quebra e onde, ou, se nao quebrar nada que ele usa, diga isso, que "
+    "e a melhor noticia. "
+    "Se o bloco disser Monitor Baseline, este e o primeiro retrato e traz tudo de uma vez: nao "
+    "liste. Diga quantos achados ha, escolha o MAIS GRAVE e ofereca o resto. "
+    "Mande UMA mensagem so, de no maximo 6 linhas. Se a mudanca nao merecer interromper alguem, "
+    "responda NO_REPLY."
 )
 
 def destino() -> str:
@@ -84,7 +93,7 @@ def publicar_scripts() -> None:
     para que uma alteração feita por um turno não sobreviva a um novo setup.
     """
     SCRIPTS.mkdir(parents=True, exist_ok=True)
-    for nome in ("deps_digest.py", "deps_scan.py"):
+    for nome in ("deps_digest.py", "deps_scan.py", "vulneraveis.py"):
         shutil.copyfile(CANONICO / nome, SCRIPTS / nome)
 
 

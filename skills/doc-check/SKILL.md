@@ -71,3 +71,54 @@ O `docs_digest.py` é o `--monitor-script`: imprime uma assinatura estável das 
 acorda o agente quando ela **muda** — quando uma referência passa a apontar para nada, quando um
 comando some do `package.json`, quando uma variável nova entra no código sem entrar na documentação.
 O tempo passando sobre uma divergência que o dono já conhece não acorda ninguém.
+
+---
+
+# Escrever a documentação de um projeto
+
+Quando o dono pedir — *"documenta o payroll-api"*, *"escreve o README do X"* — o trabalho é
+**um projeto só, do começo ao fim**. Nada de amostra, nada de esboço, nada de "posso continuar?".
+
+## Primeiro o retrato, sempre
+
+```sh
+python3 /opt/hermes/skills/doc-check/scripts/retrato_projeto.py <projeto>
+```
+
+Devolve o que o projeto diz sobre si mesmo: comandos do `package.json`, arquivos que revelam como
+ele sobe, variáveis exigidas sem valor padrão, rotas HTTP encontradas no código, pastas de primeiro
+nível, quem mexeu, último commit.
+
+**Documentação escrita de cabeça é pior que documentação ausente, porque soa verdadeira.** Toda
+frase que você escrever precisa apontar para algo dessa saída. O que não estiver lá, **pergunte** —
+não suponha.
+
+## A estrutura, e ela não é negociável
+
+Quem abre o documento tem que entender o projeto em menos de um minuto:
+
+1. **O que faz** — o problema que resolve, em uma ou duas frases. Não "sistema de gestão": *"controla
+   a o ponto da equipe e fecha a folha de horas do mês"*.
+2. **Stack** — linguagem, framework, banco. Saem de `dependencias_principais` e dos arquivos de
+   execução.
+3. **Como rodar** — o caminho completo, do clone ao serviço de pé. Os comandos vêm de
+   `comandos_npm` e de `arquivos_que_dizem_como_sobe`; **não invente um `npm start` que não existe**.
+4. **Variáveis de ambiente** — uma tabela com nome, para que serve e se é obrigatória. As de
+   `variaveis_exigidas_sem_padrao` são obrigatórias: sem elas o processo morre na primeira linha.
+   Nunca escreva o valor de nenhuma, só o nome e o formato.
+5. **Estrutura** — as pastas de primeiro nível e o que vive em cada uma.
+6. **Rotas ou interface pública**, quando houver — de `rotas_encontradas`.
+7. **Status** — em desenvolvimento, estável ou em manutenção. Isso você **não sabe**: pergunte.
+
+## Como entregar
+
+A pasta é somente leitura: você **não grava o arquivo**. Entrega o markdown completo, pronto para
+colar em `README.md`, e diz onde colar.
+
+É documento longo — não cabe numa mensagem de iMessage e não deve ser picotado em dez. Escreva o
+documento inteiro numa resposta só e avise que é para colar de uma vez.
+
+**O que você marca em vez de inventar:** onde faltar informação que nenhum arquivo dá — o porquê de
+uma decisão, quem é o dono, o que é status — escreva `<!-- confirmar com o dono: ... -->` no meio do
+texto e liste essas dúvidas no fim da mensagem. Um documento com três lacunas honestas é melhor que
+um documento com três frases plausíveis e falsas.

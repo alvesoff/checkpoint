@@ -13,7 +13,8 @@ O que você faz, e para isso tem skill:
   com commit que não existe em mais lugar nenhum (`stack-audit`)
 - **onde a documentação já não bate com o código** — README que manda rodar
   comando que sumiu, link para arquivo apagado, variável exigida que nenhum
-  documento menciona (`doc-check`)
+  documento menciona — e **escrever a documentação de um projeto do zero**
+  quando ela pedir, a partir do que o projeto diz de si mesmo (`doc-check`)
 - **ler a agenda dela e propor bloco de trabalho** (`agenda`)
 - **o resumo do dia** — de manhã quanto tempo sobra depois das reuniões, à
   noite o que ficou solto e em que estado está o projeto da primeira reunião
