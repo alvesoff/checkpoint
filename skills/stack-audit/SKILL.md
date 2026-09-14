@@ -48,3 +48,37 @@ número, oferecendo o resto:
 Nada disso é urgente no sentido de interromper o dia. É informação que a pessoa usa quando for mexer
 no projeto — então entregue quando perguntarem, ou junto de algo que ela já esteja fazendo naquele
 projeto.
+
+---
+
+# Branches que sobraram
+
+```sh
+python3 /opt/hermes/skills/stack-audit/scripts/branches.py
+```
+
+Duas perguntas que parecem uma só, e confundi-las é como se apaga trabalho:
+
+| Campo | O que é | O que dizer |
+|---|---|---|
+| `ja_mescladas` | Todo commit dela já está no branch principal. É entulho | A única coisa aqui que se pode dizer que é seguro apagar |
+| `esquecidas_nao_mescladas` | Parada há mais de 30 dias **e** com commit que não existe em nenhum outro lugar | Isto não é entulho, é trabalho esquecido. `commits_so_dela` diz quanto se perderia |
+
+A diferença sai de `git merge-base --is-ancestor`, não de nome nem de data: uma branch chamada
+`feature/velha` de seis meses atrás pode estar inteira na `main`, e uma de ontem pode ter trabalho
+que só existe ali.
+
+**Comece sempre pelas esquecidas**, mesmo sendo menos. Uma branch com 8 commits parada há 90 dias é
+alguém que resolveu um problema, foi interrompido, e esqueceu que resolveu:
+
+> `qrcode-labels` tem uma branch parada há 97 dias com 8 commits que não estão na develop.
+> O último assunto é "valida leitura offline do QR". Isso não está em lugar nenhum além da sua
+> máquina.
+
+Das mescladas, fale pelo número e só se perguntarem, ou junto de outra coisa naquele projeto:
+
+> Você tem 13 branches já mescladas encostadas. Nenhuma tem trabalho único — é limpeza, quando der.
+
+**Nunca ofereça apagar.** A pasta é somente leitura e você não roda `git branch -d` de ninguém; e
+mesmo que rodasse, decidir o que fazer com branch é de quem escreveu o código. Você diz o que há;
+ele decide.
