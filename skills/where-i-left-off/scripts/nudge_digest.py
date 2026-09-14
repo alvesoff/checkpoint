@@ -74,6 +74,27 @@ def sinal(projeto: dict) -> str | None:
     return f"{projeto['projeto']}|{projeto['branch']}|{estado_txt}|{faixa(dias)}"
 
 
+def quedas_nao_avisadas() -> list[str]:
+    """As janelas em que o canal ficou fora do ar e o dono ainda não soube.
+
+    Entram na assinatura de propósito: uma queda muda a saída do monitor, o
+    agente acorda e conta. Sem isto a falha permanece invisível — foi assim que
+    esta instalação passou três dias muda sem ninguém notar.
+
+    A janela vai arredondada em minutos, e não com horário exato, para a
+    assinatura não mudar sozinha a cada tique.
+    """
+    caminho = os.path.join(
+        os.environ.get("HERMES_HOME", "/var/lib/hermes"), "checkpoint", "quedas.json")
+    try:
+        with open(caminho, encoding="utf-8") as f:
+            dados = json.load(f)
+    except (OSError, ValueError):
+        return []
+    return [f"canal-fora|{q['minutos']}min|{q['inicio']}"
+            for q in dados.get("quedas", []) if not q.get("avisado")]
+
+
 def main() -> int:
     if not os.path.isdir(RAIZ):
         # Silêncio, não erro: um erro repetido a cada tique é uma assinatura
@@ -92,6 +113,11 @@ def main() -> int:
 
     # Ordenado para que a assinatura não dependa da ordem em que o sistema de
     # arquivos devolveu as pastas.
+    # A queda do canal vem primeiro: é a única linha que explica por que o dono
+    # pode ter ficado sem resposta, e isso vale mais que qualquer ponta solta.
+    for linha in quedas_nao_avisadas():
+        print(linha)
+
     for linha in sorted(linhas):
         print(linha)
     return 0

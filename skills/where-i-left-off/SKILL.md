@@ -89,6 +89,27 @@ consome token. A assinatura só muda quando um projeto **cruza** para uma faixa
 pior de dias parados, ou quando o tipo de pendência muda — e é aí que vale
 interromper alguém.
 
+### Quando o bloco MONITOR trouxer `canal-fora`
+
+Significa que o agente ficou **sem conexão com o Plow** por aquele tempo — o dono pode ter mandado
+mensagem e não recebido resposta, e não foi culpa dele nem sua. Avise primeiro, antes de qualquer
+ponta solta, em uma linha:
+
+> Fiquei sem conexão por 47 min (das 14h10 às 14h57). Se você me escreveu nesse intervalo, não chegou.
+
+Depois marque como avisado, para não repetir:
+
+```sh
+python3 - <<'EOF'
+import json, os
+p = os.path.join(os.environ.get("HERMES_HOME", "/var/lib/hermes"), "checkpoint", "quedas.json")
+d = json.load(open(p, encoding="utf-8"))
+for q in d["quedas"]:
+    q["avisado"] = True
+json.dump(d, open(p, "w", encoding="utf-8"), ensure_ascii=False)
+EOF
+```
+
 Quando você for acordado por isso, o bloco MONITOR traz o que mudou no formato
 `projeto|branch|estado|faixa`. Fale **só do que mudou**, nunca da lista inteira,
 e mande uma mensagem só. Se a mudança não merecer interromper ninguém, responda
