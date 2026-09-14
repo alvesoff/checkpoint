@@ -397,12 +397,18 @@ fi
 
 # ---------------------------------------------------------------- configurar e subir
 
+# O AGENT_ID diz ao reporter PARA QUAL agente do indice ele reporta. Vazio, o
+# servico `agent-index` fica parado de proposito ("standing down") e a
+# instalacao inteira nunca aparece no placar publico.
+#
+# Ficou vazio aqui e passou despercebido porque a maquina de desenvolvimento
+# tinha o valor preenchido a mao no .env: funcionava para nos e falhava em
+# silencio para todo mundo que instalasse. O reporter e o UNICO requisito
+# obrigatorio do hackathon, e `install_success` conta quem REPORTOU uso.
 cat > .env <<EOF
 CODE_DIR=$CODE_DIR
 TZ=$FUSO
-AGENT_ID=
-PANEL_USER=dev
-PANEL_PASS=$(head -c 12 /dev/urandom 2>/dev/null | od -An -tx1 | tr -d ' \n' || echo checkpoint)
+AGENT_ID=checkpoint
 EOF
 
 echo

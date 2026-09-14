@@ -100,7 +100,7 @@ plow-agents login --new-line
 plow-agents lines
 plow-agents mint ln_xxx
 
-printf 'CODE_DIR=/path/to/your/projects\nTZ=America/Sao_Paulo\n' > .env
+printf 'CODE_DIR=/path/to/your/projects\nTZ=America/Sao_Paulo\nAGENT_ID=checkpoint\n' > .env
 docker compose up --build -d
 ```
 
@@ -110,6 +110,10 @@ installer writes it.
 
 `TZ` matters: the container is UTC by default, and a calendar read in the wrong timezone tells you a
 9am meeting is at noon.
+
+`AGENT_ID` is what the hourly usage reporter reports **for**. Leave it out and the `agent-index`
+service stands down on purpose: the install runs fine and simply never appears on the index.
+The installer writes it for you — this line is here for the manual path.
 
 ### On Windows
 
