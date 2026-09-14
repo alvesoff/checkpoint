@@ -146,6 +146,7 @@ only as good as the host serving it, and this runs inside an agent holding a liv
 
 | What you see | What it is |
 |---|---|
+| The container says `Up` but the agent never answers | Measured on a clean install: with a bad or empty `plow-credentials`, the boot **parks** — `plow-init` logs *"does not contain only the documented keys ... parking; no gateway will start"* and the container stays `Up` with no gateway. `docker compose logs` shows it on the `plow-init` line. Re-run `plow-agents mint` and replace the file |
 | "no git repository found in /projects" | `CODE_DIR` points at a folder with no repositories, or one level too high |
 | "none of the N repositories could be read by git" | Ownership mismatch between host and container. The image ships `/etc/gitconfig` with `safe.directory = *` |
 | Every file shows as unsaved | Repositories cloned with CRLF against an LF index. The agent normalizes for this; if you still see it, the image predates that fix |
