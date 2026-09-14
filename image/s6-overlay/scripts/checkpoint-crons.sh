@@ -22,7 +22,8 @@ HOME_AGENTE=/var/lib/hermes
 for registro in \
   /opt/hermes/skills/where-i-left-off/scripts/register_nudge.py \
   /opt/hermes/skills/dependency-radar/scripts/register_radar.py \
-  /opt/hermes/skills/doc-check/scripts/register_docs.py
+  /opt/hermes/skills/doc-check/scripts/register_docs.py \
+  /opt/hermes/skills/daily/scripts/register_daily.py
 do
   [ -f "$registro" ] || continue
   # Nunca fatal: uma rotina que não registrou não pode impedir o agente de subir
