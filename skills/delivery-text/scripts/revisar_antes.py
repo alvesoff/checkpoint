@@ -172,12 +172,12 @@ def main() -> int:
                     continue
                 if PLACEHOLDER.search(linha):
                     continue
-                segredos.append({
-                    "arquivo": arquivo,
-                    "tipo": rotulo,
-                    # O número da linha no arquivo, não o valor. Nunca o valor.
-                    "onde": f"linha adicionada nº {linhas.index(linha) + 1} do bloco novo",
-                })
+                # Arquivo e tipo, e nada mais. Número de linha foi tentado e
+                # removido: dentro de um diff, a posição na lista de linhas
+                # adicionadas não é a linha do arquivo, e mandar o dono abrir
+                # uma linha onde não há nada é pior que não dizer linha nenhuma.
+                # O valor do segredo nunca sai daqui.
+                segredos.append({"arquivo": arquivo, "tipo": rotulo})
                 break
 
         for rotulo, padrao in DEPURACAO:

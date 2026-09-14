@@ -37,6 +37,11 @@ your system.
 | Your Dockerfiles, compared to each other | Where your own projects disagree: containers as root, missing healthchecks, `:latest`, five base images for one language |
 | Files git is not tracking | A secret sitting in a file that was never committed, reported by path and kind, never by value |
 | Your calendar, over its iCal address | What is realistic today, and a one-tap link for a block of work |
+| The OSV vulnerability database, queried with your declared versions | Which package has a known vulnerability, and **in how many of your projects** — the question a per-project `npm audit` cannot ask |
+| `git merge-base` against your main branch | Which leftover branches are already merged (clutter) and which are forgotten with commits that exist nowhere else (work) |
+| Your `.md` files, checked against the code | Documentation that stopped being true: a `npm run` that no longer exists, a link to a deleted path, a required env var no document mentions |
+| Everything not yet committed | A secret, a `.env`, a `console.log` about to enter the history — the last moment the damage is free |
+| All of the above, plus your calendar, once in the morning and once at night | What fits today, and at night what is still loose plus the state of the project your first meeting tomorrow is about |
 
 Two scheduled routines register themselves on first boot. The hourly one speaks only when a project
 **crosses** a threshold: two days idle with unsaved work, then four, then a week. The six-hourly one
@@ -123,6 +128,10 @@ getting a stray carriage return in its shebang and parking the boot with an erro
 | `skills/stack-audit/` | Cross-project consistency and the loose-secret sweep |
 | `skills/agenda/` | Calendar over iCal, and block proposals |
 | `skills/browsing/` | The browser, and deciding whether a Mac is actually there |
+| `skills/doc-check/` | Documentation checked against the code, and the twice-daily routine |
+| `skills/daily/` | The morning and evening summaries, and their two scheduled routines |
+| `skills/delivery-text/` | Commit and PR text from the real diff, and the pre-commit review |
+| `skills/todo/` | The demand list that grows from project state and closes itself |
 | `image/s6-overlay/` | Boot services: the usage reporter, the Latch probe, the routine registration, the network watchdog |
 | `install.sh` | The one-command install |
 | `install.ps1` | The same install from PowerShell: finds the bash Git for Windows ships, gets Docker running, and hands `install.sh` to it |
@@ -141,7 +150,7 @@ only as good as the host serving it, and this runs inside an agent holding a liv
 | "none of the N repositories could be read by git" | Ownership mismatch between host and container. The image ships `/etc/gitconfig` with `safe.directory = *` |
 | Every file shows as unsaved | Repositories cloned with CRLF against an LF index. The agent normalizes for this; if you still see it, the image predates that fix |
 | The agent offers to use your Mac | It should not, because it probes the relay first. If it happens, `PLOW_MCP_URL` survived without a device connected |
-| Nothing is ever sent | Expected while nothing crosses a threshold. `hermes cron runs` inside the container shows the checks happening |
+| Nothing is ever sent | Expected for the three monitor routines while nothing crosses a threshold. The two daily summaries do speak on schedule (8am and 6pm on weekdays). `hermes cron runs` inside the container shows every check happening |
 
 ## License
 
