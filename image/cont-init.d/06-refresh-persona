@@ -1,0 +1,52 @@
+#!/command/with-contenv sh
+# Faz a persona nova alcançar quem já estava conversando.
+#
+# O runtime guarda o prompt de sistema por sessão e NUNCA o troca depois:
+#
+#   system_prompt_hash = COALESCE(sessions.system_prompt_hash,
+#                                 excluded.system_prompt_hash)
+#                                         -- hermes_state.py, linha ~6746
+#
+# O valor existente sempre ganha. Consequência: a sessão que o dono usa foi
+# criada no primeiro "oi" dele e carrega a persona daquele dia **para sempre**.
+# Atualizar a imagem publica skill nova, reescreve o SOUL.md, reinicia tudo — e
+# a conversa dele continua com o texto antigo.
+#
+# Foi exatamente o que aconteceu em 14/09: quatro skills novas e duas ressalvas
+# de persona foram publicadas e testadas ao longo do dia, o SOUL.md em disco
+# estava correto, e o agente continuou respondendo "não tenho lista própria"
+# porque a sessão dele, de 11/09, conhecia cinco skills. Três correções foram
+# escritas para um problema que não era o que parecia.
+#
+# Limpar o vínculo faz o próximo turno gravar o prompt atual. Se nada mudou, o
+# prompt recomposto é idêntico, o hash é o mesmo e não há efeito nenhum — por
+# isso rodar a cada boot é seguro, e não só quando a persona muda.
+#
+# O que NÃO se toca: a tabela `messages`. O histórico da conversa continua
+# inteiro; o que se refaz é só a instrução de sistema.
+set -eu
+
+BANCO=/var/lib/hermes/state.db
+[ -f "$BANCO" ] || exit 0
+
+# Como o usuário do agente, nunca como root: o runtime endurece a permissão da
+# home com o uid de quem o chama, e um passo de boot rodando como root deixaria
+# `/var/lib/hermes` inacessível para o próprio agente. Já custou um dia de
+# agente mudo.
+/command/s6-setuidgid hermes /opt/hermes/.venv/bin/python3 - <<'PY' || \
+  echo "[checkpoint] não consegui soltar o prompt das sessões — o agente sobe mesmo assim"
+import sqlite3
+
+try:
+    conexao = sqlite3.connect("/var/lib/hermes/state.db", timeout=10)
+    cursor = conexao.execute(
+        "UPDATE sessions SET system_prompt_hash = NULL, system_prompt = NULL "
+        "WHERE system_prompt_hash IS NOT NULL"
+    )
+    conexao.commit()
+    print(f"[checkpoint] {cursor.rowcount} sessões vão reler a persona no próximo turno")
+except sqlite3.Error as erro:
+    # Banco ocupado ou ausente não pode impedir o agente de subir: no pior caso
+    # a persona velha continua mais um boot, que é o comportamento de hoje.
+    print(f"[checkpoint] prompt das sessões mantido: {erro}")
+PY

@@ -60,3 +60,8 @@ RUN printf '[safe]\n\tdirectory = *\n' > /etc/gitconfig && chmod 0644 /etc/gitco
 # todo aviso proativo chega com "Cronjob Response", id do job e instrucoes de
 # gerenciamento no meio da mensagem.
 COPY --chmod=0755 image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-config
+
+# Solta o prompt de sistema preso na sessao. Sem isto, toda persona nova so
+# alcanca quem instalar DEPOIS dela: quem ja estava conversando carrega para
+# sempre o texto do dia em que abriu a conversa. Ver o proprio script.
+COPY --chmod=0755 image/cont-init.d/06-refresh-persona /etc/cont-init.d/06-refresh-persona
