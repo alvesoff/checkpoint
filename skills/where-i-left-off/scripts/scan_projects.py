@@ -46,6 +46,7 @@ def git(repo: str, *args: str) -> str:
             capture_output=True,
             text=True,
             timeout=20,
+            encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return ""

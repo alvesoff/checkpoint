@@ -97,6 +97,7 @@ def rastreados_e_soltos(projeto: str) -> list[str]:
         saida = subprocess.run(
             ["git", "-c", "core.autocrlf=true", "-C", projeto, "status", "--porcelain"],
             capture_output=True, text=True, timeout=30,
+            encoding="utf-8", errors="replace",
         )
     except (OSError, subprocess.SubprocessError):
         return []
