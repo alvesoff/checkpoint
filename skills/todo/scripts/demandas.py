@@ -145,6 +145,12 @@ def projetos_com_reuniao(dias: int = 3) -> dict[str, str]:
     return encontrados
 
 
+def projetos_plural(quantos) -> str:
+    """"em 1 projetos" numa mensagem sobre vulnerabilidade CRITICAL desconta a
+    mensagem inteira: quem lê para de confiar no que vem depois."""
+    return "1 projeto" if quantos == 1 else f"{quantos} projetos"
+
+
 def urgencia_de(demanda: dict, com_reuniao: dict[str, str]) -> tuple[int, str]:
     """De 0 a 3, e o motivo — sempre um fato externo, nunca a gravidade.
 
@@ -230,12 +236,12 @@ def derivadas() -> dict[str, dict]:
         pacote = a["pacote"]
         if a["tipo"] == "abandonado":
             achadas[f"dep:abandonado:{pacote}"] = {
-                "texto": f"{pacote} foi descontinuado e está em {a['quantos']} projetos: {a['detalhe'][:110]}",
+                "texto": f"{pacote} foi descontinuado e está em {projetos_plural(a['quantos'])}: {a['detalhe'][:110]}",
                 "projeto": ", ".join(a["projetos"][:3]), "origem": "dependencia", "peso": 3,
             }
         else:
             achadas[f"dep:atras:{pacote}"] = {
-                "texto": f"{pacote} está em {a['voce_usa']} e o atual é {a['atual']}, afetando {a['quantos']} projetos",
+                "texto": f"{pacote} está em {a['voce_usa']} e o atual é {a['atual']}, afetando {projetos_plural(a['quantos'])}",
                 "projeto": ", ".join(a["projetos"][:3]), "origem": "dependencia", "peso": 1,
             }
 
@@ -247,7 +253,7 @@ def derivadas() -> dict[str, dict]:
             continue
         achadas[f"vuln:{v['pacote']}:{v['versao_declarada']}"] = {
             "texto": (f"{v['pacote']} {v['versao_declarada']} tem vulnerabilidade "
-                      f"{v['pior']} ({v['vulnerabilidades']} conhecidas) em {v['quantos']} projetos"),
+                      f"{v['pior']} ({v['vulnerabilidades']} conhecidas) em {projetos_plural(v['quantos'])}"),
             "projeto": ", ".join(v["projetos"][:3]), "origem": "seguranca", "peso": 5,
             "em_curso": True,
         }
