@@ -77,8 +77,16 @@ PY
 mkdir -p "$ESTADO"
 chown 10000:10000 "$ESTADO" 2>/dev/null || true
 
+# O momento da queda vive em disco, não em memória. Um vigia cujo trabalho é não
+# perder informação não pode perdê-la quando o container reinicia — e reiniciar
+# durante uma queda é exatamente o que acontece quando a pessoa reinicia o Docker
+# para tentar consertar a rede.
+EM_QUEDA="$ESTADO/em-queda"
+
 falhas=0
 caiu_em=0
+[ -f "$EM_QUEDA" ] && caiu_em=$(cat "$EM_QUEDA" 2>/dev/null || echo 0)
+case "$caiu_em" in ''|*[!0-9]*) caiu_em=0 ;; esac
 
 while :; do
   if alcanca_relay; then
@@ -86,12 +94,16 @@ while :; do
       agora=$(date +%s)
       echo "[net-watchdog] rede voltou apos $(( (agora - caiu_em) / 60 )) min — registrando para avisar o dono"
       registrar_queda "$caiu_em" "$agora"
+      rm -f "$EM_QUEDA"
       caiu_em=0
     fi
     falhas=0
   else
     falhas=$((falhas + 1))
-    [ "$caiu_em" -eq 0 ] && caiu_em=$(date +%s)
+    if [ "$caiu_em" -eq 0 ]; then
+      caiu_em=$(date +%s)
+      printf '%s' "$caiu_em" > "$EM_QUEDA"
+    fi
     echo "[net-watchdog] relay inalcancavel ($falhas)"
     if [ "$falhas" -ge "$TOLERANCIA" ]; then
       echo "[net-watchdog] reiniciando o gateway para reabrir o websocket"
