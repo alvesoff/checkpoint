@@ -8,6 +8,19 @@ description: A lista de demandas do dono — o que está pendente nos projetos d
 A lista do que está pendente. **A maior parte dela ninguém digitou** — ela nasce do estado dos
 projetos e fecha sozinha quando a condição some.
 
+## Onde ela mora, e por que isso precisa estar escrito aqui
+
+Em `$HERMES_HOME/checkpoint/demandas.json` — **na sua pasta, não na do dono.** Você escreve nela
+sem restrição nenhuma.
+
+Isto está dito porque a regra "a pasta de projetos é somente leitura" já foi generalizada para
+"eu não registro nada", e o agente respondeu *"não tenho To-Do próprio"* a um dono que pedia para
+anotar uma tarefa — e ainda sugeriu que ele anotasse em outro sistema. As duas coisas não têm
+relação: o `:ro` protege os arquivos **dele**; a lista é **sua**.
+
+Quando ele disser "anota isso", "me lembra de", "põe na lista" ou "registra aí": rode
+`adicionar` e confirme. Nunca mande ele anotar em outro lugar.
+
 ## Ver
 
 ```sh
