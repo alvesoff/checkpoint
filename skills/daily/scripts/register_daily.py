@@ -35,14 +35,18 @@ ROTINAS = [
         "quando": "0 8 * * 1-5",
         "script": "resumo_manha.py",
         "instrucao": (
-            "Este e o resumo da manha do dono, ja calculado no bloco acima. "
-            "Diga em no maximo 6 linhas: quantas horas de reuniao ele tem hoje, quanto sobra, e "
-            "quais projetos estao com trabalho pendente - uma linha por projeto, no formato "
-            "nome - pendencia - dias. "
-            "A conta que importa e quantas FRENTES cabem no tempo que sobra, nao quantas tarefas: "
-            "se sobram 4 horas e ha 6 projetos parados, diga que da para atacar um. "
-            "Se nao ha reuniao nenhuma e nenhum projeto parado, responda NO_REPLY - dia limpo nao "
-            "merece mensagem."
+            "Este e o resumo da manha do dono, ja calculado no bloco acima. Maximo 6 linhas. "
+            "ABRA pelo campo o_que_ninguem_vai_cobrar_hoje: e a coisa mais importante que ninguem "
+            "esta cobrando e que ele nao vai fazer se voce nao lembrar. Diga o que e, e diga ha "
+            "quanto tempo esta parada, porque o tempo parado E o argumento. "
+            "Depois: quantas horas de reuniao ele tem hoje e quanto sobra. A conta que importa e "
+            "quantas FRENTES cabem no tempo que sobra, nao quantas tarefas - se sobram 4 horas e ha "
+            "6 projetos parados, diga que da para atacar um. "
+            "Se o campo quadrantes mostrar itens em 'agora', cite o numero deles numa linha e "
+            "ofereca - sao vulnerabilidade ou segredo exposto, e nao podem sumir da mensagem. "
+            "Nao liste tudo: uma coisa importante bem dita vale mais que sete linhas de inventario. "
+            "Se nao ha reuniao nenhuma, nenhum projeto parado e nada em 'agora', responda NO_REPLY - "
+            "dia limpo nao merece mensagem."
         ),
     },
     {

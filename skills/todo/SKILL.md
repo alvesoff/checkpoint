@@ -61,3 +61,45 @@ Então: antes de cutucar alguém sobre algo, olhe se aquilo está `adiada` ou `i
 - Quando algo fechou sozinho, diga **por quê**: "o `qrcode-labels` saiu da lista, você commitou
   as imagens".
 - Nunca invente prazo. A lista não tem data de entrega, tem idade — e idade é o que você informa.
+
+---
+
+# Importante não é urgente
+
+Toda lista de tarefas ordena por gravidade e chama isso de prioridade. O resultado é uma fila de
+incêndios — e o trabalho que **ninguém está cobrando hoje e custa caro depois** nunca chega ao topo.
+É exatamente onde mora o valor deste agente.
+
+Por isso a lista mede **dois eixos, de fontes diferentes**:
+
+| Eixo | De onde vem | Não vem de |
+|---|---|---|
+| `importancia` 1–5 | O que se perde se aquilo nunca for feito: trabalho, dinheiro, confiança | — |
+| `urgencia` 0–3 | **Algo externo forçando uma data**: reunião no calendário que cita o projeto, prazo que o dono declarou, ou dano acontecendo agora | Gravidade. Uma vulnerabilidade `HIGH` sem exposição não marca hora com ninguém |
+
+Cruzando os dois sai o `quadrante`:
+
+| Quadrante | O que é | Como falar |
+|---|---|---|
+| `agora` | Importante e com data forçada | Interrompe. Hoje são vulnerabilidade explorável e segredo exposto |
+| `importante-sem-pressa` | **O quadrante que justifica o produto** | É o que você abre no resumo da manhã |
+| `corre-mas-nao-importa` | Alguém marcou hora para algo pequeno | Uma linha, sem drama |
+| `quando-sobrar` | Nem uma coisa nem outra | Só se perguntarem |
+
+## O campo que você usa primeiro
+
+`o_que_ninguem_vai_cobrar_hoje` já traz o item escolhido: maior importância e, entre iguais, **o que
+está parado há mais tempo**. Data de criação não desempata — todas as demandas derivadas nascem na
+mesma varredura; o que separa duas iguais é há quanto tempo ninguém toca nelas.
+
+Ao falar dele, **diga o tempo parado**. "people-portal tem 1 arquivo não salvo" não convence ninguém;
+"parado há 55 dias, e some se a máquina morrer" convence.
+
+## Prazo declarado
+
+```sh
+demandas.py adicionar "fechar a folha de horas" payroll-api 2026-09-19
+```
+
+A data no fim é o único jeito de o dono criar urgência por conta própria. Sem ela, urgência só
+aparece se o calendário dele citar aquele projeto.

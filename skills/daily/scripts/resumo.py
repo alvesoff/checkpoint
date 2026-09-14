@@ -9,7 +9,10 @@ Calendário guarda intenção, git guarda realidade, e ninguém junta os dois �
 pessoa marca seis horas de trabalho num dia que já tem quatro de reunião, e
 descobre às cinco da tarde.
 
-De manhã responde "o que dá para fazer hoje", com as horas livres calculadas.
+De manhã responde "o que dá para fazer hoje", com as horas livres calculadas — e
+abre pelo **importante que não é urgente**, que é a coisa que nenhuma lista de
+tarefas mostra, porque todas ordenam por gravidade e gravidade é urgência
+disfarçada.
 À noite responde "o que eu fiz e o que ficou solto", e olha a primeira reunião
 de amanhã para dizer em que estado está o projeto que ela cita.
 """
@@ -157,9 +160,15 @@ def manha() -> dict:
     parados.sort(key=lambda p: (-int(bool(p.get("nunca_versionado"))),
                                 -(p.get("arquivos_alterados") or 0)))
 
+    # A pergunta que ninguém se faz sozinho, e que o resumo existe para responder.
+    # Vem da lista de demandas porque é lá que os dois eixos são cruzados.
+    lista = rodar(f"{SKILLS}/todo/scripts/demandas.py", "listar")
+
     return {
         "momento": "manha",
         "data": hoje.isoformat(),
+        "o_que_ninguem_vai_cobrar_hoje": lista.get("o_que_ninguem_vai_cobrar_hoje"),
+        "quadrantes": lista.get("por_quadrante"),
         "reunioes": [{"titulo": e["titulo"], "inicio": e["inicio"], "minutos": e.get("minutos")}
                      for e in eventos],
         "minutos_de_reuniao": ocupado,
