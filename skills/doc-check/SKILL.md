@@ -39,6 +39,15 @@ não roda do diretório que o documento sugere. Dizer "não existe" sobre coisa 
 faz a pessoa parar de conferir tudo o que você diz. Se for esse o caso, diga o que é de verdade:
 *"esse script está em `server/package.json`; do diretório onde o documento coloca você, ele falha"*.
 
+Para `comandos_fora_do_lugar`, diga **de onde ele roda**, que é a informação que falta:
+
+> O `README` da raiz do `mono` manda rodar `npm run db:migrate`, mas esse script só existe em
+> `server/package.json`. Quem seguir a partir da raiz vê "Missing script". Ou `npm run db:migrate -w
+> server`, ou um `cd server` antes.
+
+Esse achado **não** aparece quando o documento está dentro do próprio workspace: quem lê
+`server/MIGRACAO.md` já está em `server/`, e ali o comando funciona. Não invente problema nesse caso.
+
 Para variáveis, o número primeiro e o nome perigoso depois:
 
 > O `sso-interno` exige 4 variáveis que nenhum documento cita, e uma delas é `GRAPH_CLIENT_SECRET`.

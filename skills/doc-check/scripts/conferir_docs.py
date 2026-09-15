@@ -153,8 +153,8 @@ def variaveis_exigidas(repo: str) -> set[str]:
     return exigidas - DISPENSADAS
 
 
-def scripts_do_projeto(repo: str) -> set:
-    """Scripts npm do projeto, contando os dos workspaces.
+def scripts_do_projeto(repo: str) -> dict:
+    """Script npm -> pasta, relativa ao repo, de onde ele roda ("" = raiz).
 
     Ler só o `package.json` da raiz acusa de sumido todo script declarado num
     workspace, que é a forma normal de organizar monorepo. Aconteceu de
@@ -162,6 +162,9 @@ def scripts_do_projeto(repo: str) -> set:
     existe", e o script estava em `server/package.json` o tempo todo. Dizer que
     não existe uma coisa que existe é o erro que faz a pessoa parar de conferir
     o que o agente diz.
+
+    Guardar a PASTA, e não só o nome, é o que permite a segunda pergunta: o
+    documento que cita o comando está dentro dela?
     """
     def scripts_de(caminho: str) -> set:
         try:
@@ -171,28 +174,66 @@ def scripts_do_projeto(repo: str) -> set:
 
     raiz = os.path.join(repo, "package.json")
     if not os.path.isfile(raiz):
-        return set()
+        return {}
 
     try:
         dados = json.loads(ler(raiz)) or {}
     except ValueError:
-        return set()
+        return {}
 
-    achados = set(dados.get("scripts", {}))
+    onde = {nome: "" for nome in dados.get("scripts", {})}
 
     # npm aceita lista; yarn clássico aceita {"packages": [...]}.
     espaco = dados.get("workspaces")
     if isinstance(espaco, dict):
         espaco = espaco.get("packages")
     if not isinstance(espaco, list):
-        return achados
+        return onde
 
     for padrao in espaco[:20]:
         if not isinstance(padrao, str):
             continue
         for pasta in glob.glob(os.path.join(repo, padrao))[:40]:
-            achados |= scripts_de(os.path.join(pasta, "package.json"))
-    return achados
+            rel = os.path.relpath(pasta, repo).replace(os.sep, "/")
+            for nome in scripts_de(os.path.join(pasta, "package.json")):
+                # A raiz ganha: se o script existe nos dois, `npm run` na raiz
+                # resolve, e não há pergunta a fazer.
+                onde.setdefault(nome, rel)
+    return onde
+
+
+def comandos_fora_do_lugar(repo: str, onde: dict, textos: dict) -> list:
+    """Comando que só existe num workspace, citado por documento fora dele.
+
+    Quem lê um documento roda os comandos dele a partir da pasta onde o
+    documento está. Se o `npm run X` só existe em `server/package.json` e quem
+    cita é o README da RAIZ, o comando falha com "Missing script" para quem
+    seguir o passo a passo — e o erro não diz onde ele está.
+
+    O contrário não é achado: `server/MIGRATION.md` citando um script de
+    `server/` está certo, porque o leitor já está em `server/`. Foi esse caso
+    que produziu o falso positivo de 14/09, e é ele que esta função existe para
+    NÃO reportar.
+    """
+    fora = []
+    for documento, texto in textos.items():
+        pasta_doc = os.path.dirname(os.path.relpath(documento, repo)).replace(os.sep, "/")
+        for comando in set(NPM_RUN.findall(texto)):
+            dono = onde.get(comando)
+            if not dono:
+                continue
+            # Está na raiz: roda de qualquer lugar do repo.
+            if dono == "":
+                continue
+            # O documento está dentro do workspace dono (ou abaixo dele).
+            if pasta_doc == dono or pasta_doc.startswith(dono + "/"):
+                continue
+            # O próprio documento já ensina a sair do lugar.
+            if f"-w {dono}" in texto or f"cd {dono}" in texto:
+                continue
+            fora.append({"documento": os.path.relpath(documento, repo).replace(os.sep, "/"),
+                         "comando": comando, "existe_em": dono})
+    return sorted(fora, key=lambda x: (x["documento"], x["comando"]))
 
 
 def conferir(repo: str) -> dict:
@@ -208,9 +249,10 @@ def conferir(repo: str) -> dict:
     # `npm run X` citado e ausente do package.json. É o comando que a pessoa
     # copia, cola e vê falhar no primeiro minuto de contato com o projeto.
     sumidos: list[str] = []
-    scripts = scripts_do_projeto(repo)
-    if scripts:
-        sumidos = sorted({a for a in NPM_RUN.findall(tudo) if a not in scripts})
+    onde_roda = scripts_do_projeto(repo)
+    if onde_roda:
+        sumidos = sorted({a for a in NPM_RUN.findall(tudo) if a not in onde_roda})
+    fora_do_lugar = comandos_fora_do_lugar(repo, onde_roda, texto_docs)
 
     # Variável exigida que nenhum documento nem arquivo de exemplo menciona. É o
     # que faz o projeto subir na máquina de quem escreveu e em nenhuma outra.
@@ -220,13 +262,14 @@ def conferir(repo: str) -> dict:
         documentado += ler(os.path.join(repo, exemplo))
     sem_doc = sorted(v for v in variaveis_exigidas(repo) if v not in documentado)
 
-    if not (quebrados or sumidos or sem_doc):
+    if not (quebrados or sumidos or fora_do_lugar or sem_doc):
         return {}
     return {
         "projeto": os.path.basename(repo.rstrip("/\\")),
         "documentos": len(docs),
         "referencias_quebradas": quebrados[:10],
         "comandos_que_sumiram": sumidos[:10],
+        "comandos_fora_do_lugar": fora_do_lugar[:10],
         "variaveis_exigidas_sem_documentacao": sem_doc[:15],
     }
 
