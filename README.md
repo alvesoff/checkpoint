@@ -1,11 +1,12 @@
 # checkpoint
 
-Your projects have loose ends. This agent finds them, from your own machine, and tells you before
-they cost you something.
+A Hermes agent that reads your repos: where each project stopped, what you changed and never saved,
+outdated or vulnerable dependencies. Reads your calendar and keeps your to-do list. Mornings it
+texts the most important thing nobody is chasing you on; evenings, tomorrow's meeting and its
+project.
 
-It reads your repositories and answers over iMessage: where you stopped in each project, which
-dependency is about to break *your* code, where your own projects contradict each other, and what
-actually fits in your day. It also speaks first — but only when something changed.
+All of it over iMessage, from your own machine. It answers when you ask, and it speaks first — but
+only when something actually changed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.sh | sh
