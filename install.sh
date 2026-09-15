@@ -185,6 +185,31 @@ fi
 
 PLOW="$PY tools/plow-agents/bin/plow-agents"
 
+# A CLI do Plow separa colunas por TAB, e um numero de telefone tem espaco
+# dentro. Lido por posicao no separador padrao, "+1 555 0100" vira tres campos
+# e o numero sai truncado. Cada leitura tenta TAB primeiro e so entao cai para
+# espaco, para nao quebrar de novo se o formato mudar.
+linha_livre() {
+  L=$($PLOW lines 2>/dev/null | awk -F'\t' '$NF=="free"{print $1; exit}')
+  [ -n "$L" ] || L=$($PLOW lines 2>/dev/null | awk '$NF=="free"{print $1; exit}')
+  printf '%s' "$L"
+}
+
+# Numa reinstalacao a conta ja gastou a linha: nenhuma esta "free", e ainda
+# assim e dela que sai o numero para textar.
+linha_em_uso() {
+  L=$($PLOW lines 2>/dev/null | awk -F'\t' 'NR>1 && $1!=""{print $1; exit}')
+  [ -n "$L" ] || L=$($PLOW lines 2>/dev/null | awk 'NR>1 && $1!=""{print $1; exit}')
+  printf '%s' "$L"
+}
+
+numero_da_linha() {
+  [ -n "$1" ] || return 0
+  N=$($PLOW lines 2>/dev/null | awk -F'\t' -v l="$1" '$1==l{print $3; exit}')
+  [ -n "$N" ] || N=$($PLOW lines 2>/dev/null | awk -v l="$1" '$1==l{print $3; exit}')
+  printf '%s' "$N"
+}
+
 # ---------------------------------------------------------------- pastas de código
 
 # Procura todo lugar onde a pessoa possa guardar projeto e conta os repositórios
@@ -241,10 +266,15 @@ if [ -n "$CANDIDATAS" ]; then
   else
     # Uma a uma, para quem quer deixar a pasta pessoal de fora.
     ESCOLHIDAS=""
-    for linha in $(printf '%s' "$CANDIDATAS" | cut -d"|" -f1); do
+    # `for` sobre $(...) quebra no espaco: um perfil do Windows chamado
+    # "Ana Paula" viraria duas perguntas, nenhuma das duas uma pasta real.
+    while IFS= read -r linha; do
+      [ -n "$linha" ] || continue
       confirmar "  $linha ?" "  $linha ?" s && ESCOLHIDAS="$ESCOLHIDAS$linha
 "
-    done
+    done <<CANDIDATAS_ESCOLHA
+$(printf '%s' "$CANDIDATAS" | cut -d"|" -f1)
+CANDIDATAS_ESCOLHA
   fi
 fi
 
@@ -277,20 +307,53 @@ done
 # entram por um override, cada uma em /projects/<nome>. Repositório novo dentro
 # de qualquer uma delas é encontrado na próxima varredura, sem reinstalar nada —
 # só uma pasta-raiz nova exige rodar isto de novo.
-CODE_DIR=$(printf '%s' "$ESCOLHIDAS" | head -1)
-EXTRAS=$(printf '%s' "$ESCOLHIDAS" | tail -n +2)
+# A pasta com MAIS repositorios vira a raiz. Escolher pela ordem do heredoc
+# elegia a primeira que existisse: numa maquina com uma pasta de 1 repo e outra
+# de 25, a de 1 virava a principal e a de 25 ia para o override.
+CODE_DIR=""
+MAIOR=-1
+while IFS= read -r escolhida; do
+  [ -n "$escolhida" ] || continue
+  n=$(printf '%s' "$CANDIDATAS" | awk -F'|' -v p="$escolhida" '$1==p{print $2; exit}')
+  [ -n "$n" ] || n=$(find "$escolhida" -maxdepth 2 -name .git -type d 2>/dev/null | wc -l | tr -d " ")
+  if [ "$n" -gt "$MAIOR" ]; then MAIOR=$n; CODE_DIR=$escolhida; fi
+done <<ESCOLHA_RAIZ
+$ESCOLHIDAS
+ESCOLHA_RAIZ
+EXTRAS=$(printf '%s' "$ESCOLHIDAS" | grep -vxF "$CODE_DIR" | sed '/^$/d')
 
+# Havendo mais de uma pasta, NENHUMA pode ir para /projects: esse caminho vira
+# um bind somente leitura e o Docker nao consegue criar /projects/<nome> dentro
+# dele. O daemon recusa com "read-only file system", exit 125, e o instalador
+# traduzia isso como "Build failed" — no caminho PADRAO (Enter = sim). Entao,
+# havendo extras, todas descem um nivel: /projects passa a ser diretorio do
+# proprio container e cada pasta monta em /projects/<nome>. O scan ja procura
+# ate dois niveis abaixo da raiz, que era o desenho pretendido desde o inicio.
+CODE_TARGET=""
 rm -f compose.override.yml
 if [ -n "$(printf '%s' "$EXTRAS" | tr -d '[:space:]')" ]; then
+  CODE_TARGET="/projects/$(basename "$CODE_DIR")"
   {
     echo "# Gerado pelo install.sh: as demais pastas de código, somente leitura."
     echo "services:"
     echo "  agent:"
     echo "    volumes:"
+    USADOS=" $(basename "$CODE_DIR") "
     printf '%s
 ' "$EXTRAS" | while read -r extra; do
       [ -n "$extra" ] || continue
-      echo "      - $extra:/projects/$(basename "$extra"):ro"
+      nome=$(basename "$extra")
+      # Duas pastas "code" em lugares diferentes montariam no mesmo alvo e uma
+      # delas sumiria sem nenhum aviso.
+      case "$USADOS" in *" $nome "*) nome="$nome-$(printf '%s' "$extra" | cksum | cut -d' ' -f1)";; esac
+      USADOS="$USADOS$nome "
+      # Sintaxe longa de proposito: na curta o compose separa por ":", e um
+      # caminho do Windows ja traz um (C:/Users/...) enquanto um nome de perfil
+      # com espaco traz outro problema. Assim source e target sao campos.
+      echo "      - type: bind"
+      echo "        source: \"$extra\""
+      echo "        target: \"/projects/$nome\""
+      echo "        read_only: true"
     done
   } > compose.override.yml
   msg "Extra folders written to compose.override.yml" "Pastas extras gravadas em compose.override.yml"
@@ -382,13 +445,13 @@ if [ ! -f plow-credentials ]; then
 
   # --new-line aloca um número na conta e não tem como desfazer, então só
   # entra em cena depois de olhar as linhas que a conta já tem.
-  LINHA=$($PLOW lines 2>/dev/null | awk '$NF=="free"{print $1; exit}')
+  LINHA=$(linha_livre)
   if [ -z "$LINHA" ]; then
     confirmar "No free line on this account. Ask Plow for one? (cannot be undone)" \
               "Nenhuma linha livre nesta conta. Pedir uma ao Plow? (não dá para desfazer)" s \
       || erro "Cannot continue without a line." "Não dá para continuar sem uma linha."
     $PLOW login --new-line || erro "Login failed." "Login falhou."
-    LINHA=$($PLOW lines 2>/dev/null | awk '$NF=="free"{print $1; exit}')
+    LINHA=$(linha_livre)
     [ -n "$LINHA" ] || erro "Still no free line on this account." "Continua sem linha livre nesta conta."
   fi
   msg "Using line $LINHA." "Usando a linha $LINHA."
@@ -407,6 +470,7 @@ fi
 # obrigatorio do hackathon, e `install_success` conta quem REPORTOU uso.
 cat > .env <<EOF
 CODE_DIR=$CODE_DIR
+CODE_TARGET=${CODE_TARGET:-/projects}
 TZ=$FUSO
 AGENT_ID=checkpoint
 EOF
@@ -416,10 +480,45 @@ msg "Building the image (first time takes a few minutes)..." \
     "Construindo a imagem (a primeira vez demora alguns minutos)..."
 "$DOCKER" compose up --build -d || erro "Build failed." "A construção falhou."
 
-NUMERO=$($PLOW lines 2>/dev/null | awk -v l="$LINHA" '$1==l{print $3}')
+# O pior modo de falha medido neste projeto: a imagem constroi, o container
+# sobe, e o runtime "estaciona" por credencial recusada sem nunca abrir o
+# gateway. Ate aqui o script dizia "Pronto" por cima de um agente mudo.
+msg "Checking that the agent actually came up..." \
+    "Conferindo se o agente subiu de verdade..."
+ESTACIONADO=""
+i=0
+while [ "$i" -lt 25 ]; do
+  LOGS=$("$DOCKER" compose logs --no-color agent 2>/dev/null || true)
+  case "$LOGS" in
+    *"parking; no gateway will start"*) ESTACIONADO="sim"; break;;
+    *"Gateway started"*|*gateway*istening*) break;;
+  esac
+  i=$((i + 1))
+  sleep 1
+done
+if [ -n "$ESTACIONADO" ]; then
+  msg "The agent started but PARKED: the credential was refused." \
+      "O agente subiu mas ESTACIONOU: a credencial foi recusada."
+  msg "Delete plow-credentials and run this again to mint a new one." \
+      "Apague plow-credentials e rode isto de novo para gerar outra."
+  erro "Agent parked; it will not answer." "Agente estacionado; ele nao vai responder."
+fi
+
+# LINHA so existe quando ESTE run passou pelo mint. Numa reinstalacao sobre uma
+# credencial que ja existe o bloco e pulado, e `awk -v l="$LINHA"` sob `set -eu`
+# matava o script com "LINHA: unbound variable" DEPOIS do build dar certo e
+# ANTES de imprimir o numero — justamente na segunda tentativa, que e onde a
+# taxa de instalacao se recupera.
+[ -n "${LINHA:-}" ] || LINHA=$(linha_em_uso)
+NUMERO=$(numero_da_linha "${LINHA:-}")
 echo
 msg "Done. Text this number and ask: where did I leave off?" \
     "Pronto. Mande uma mensagem para este número e pergunte: onde eu parei?"
-[ -n "${NUMERO:-}" ] && printf '\n    %s\n\n' "$NUMERO"
+if [ -n "${NUMERO:-}" ]; then
+  printf '\n    %s\n\n' "$NUMERO"
+else
+  msg "Could not read the number here. Run: $PLOW lines" \
+      "Nao consegui ler o numero aqui. Rode: $PLOW lines"
+fi
 msg "Logs:   $DOCKER compose logs -f agent" "Logs:   $DOCKER compose logs -f agent"
 msg "Folder: $DESTINO" "Pasta:  $DESTINO"

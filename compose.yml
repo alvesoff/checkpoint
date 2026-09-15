@@ -17,7 +17,12 @@ services:
       # A pasta que contém seus projetos, SOMENTE LEITURA. É a única coisa que
       # este agente precisa para funcionar — não há OAuth, token nem conta.
       # Aponte para a pasta que contém os projetos, não para um projeto só.
-      - ${CODE_DIR:-./projects}:/projects:ro
+      # O alvo e variavel porque uma instalacao com MAIS DE UMA pasta nao pode
+      # montar nenhuma delas em /projects: o bind ficaria somente leitura e o
+      # Docker nao conseguiria criar /projects/<nome> dentro dele. Nesse caso o
+      # install.sh escreve CODE_TARGET=/projects/<nome> e todas descem um nivel.
+      # Vazio ou ausente (uma pasta so) mantem o comportamento antigo.
+      - ${CODE_DIR:-./projects}:${CODE_TARGET:-/projects}:ro
       # A home do agente, preservada entre up/down para manter sessões e setup.
       - agent-home:/var/lib/hermes
     # O agente salva a sessão no SIGTERM e o supervisor dele espera 30s; o
