@@ -144,21 +144,37 @@ if ! "$DOCKER" --version >/dev/null 2>&1; then
              "Falta o Docker e nao ha sudo aqui. Instale o docker como root e rode de novo."
       fi
     fi
-    if confirmar "Install Docker Engine now, with the official script? (asks for your password)" \
-                 "Instalar o Docker Engine agora, pelo script oficial? (vai pedir sua senha)" s; then
+    if confirmar "Install Docker Engine now? (your package manager may update other packages; asks for your password)" \n                 "Instalar o Docker Engine agora? (o gerenciador de pacotes pode atualizar outros pacotes; vai pedir sua senha)" s; then
       command -v curl >/dev/null 2>&1 || erro \
         "curl is needed to fetch the Docker installer." \
         "Preciso do curl para baixar o instalador do Docker."
-      # get.docker.com e publicado e mantido pela propria Docker, e cobre Debian,
-      # Ubuntu, Fedora, CentOS e derivados. Baixado para arquivo antes de rodar:
-      # `curl | sh` como root esconde o que esta sendo executado.
-      curl -fsSL https://get.docker.com -o /tmp/get-docker.sh || erro \
-        "Could not download the Docker installer." \
-        "Nao consegui baixar o instalador do Docker."
-      $SUDO sh /tmp/get-docker.sh || erro \
-        "The Docker install failed. See the output above." \
-        "A instalacao do Docker falhou. Veja a saida acima."
-      rm -f /tmp/get-docker.sh
+      # O get.docker.com NAO cobre Arch: ele responde
+      # "ERROR: Unsupported distribution 'cachyos'" e sai. No Arch e derivados
+      # (CachyOS, Manjaro, EndeavourOS) o docker esta no repositorio oficial, e
+      # tentar o script da Docker primeiro so faz a pessoa ver um erro em ingles
+      # antes de chegar no caminho que funciona.
+      if command -v pacman >/dev/null 2>&1; then
+        msg "Arch-based system: installing docker from the official repository." \
+            "Sistema baseado em Arch: instalando o docker pelo repositorio oficial."
+        # -Syu, e nao -S: sem sincronizar a base o pacman responde "target not
+        # found", e sincronizar sem atualizar (-Sy) deixa o sistema em partial
+        # upgrade, que o Arch desaconselha e que quebra de formas dificeis de
+        # diagnosticar depois.
+        $SUDO pacman -Syu --needed --noconfirm docker docker-compose || erro \
+          "pacman could not install docker. See the output above." \
+          "O pacman nao conseguiu instalar o docker. Veja a saida acima."
+      else
+        # get.docker.com e publicado e mantido pela propria Docker, e cobre
+        # Debian, Ubuntu, Fedora, CentOS e derivados. Baixado para arquivo antes
+        # de rodar: `curl | sh` como root esconde o que esta sendo executado.
+        curl -fsSL https://get.docker.com -o /tmp/get-docker.sh || erro \
+          "Could not download the Docker installer." \
+          "Nao consegui baixar o instalador do Docker."
+        $SUDO sh /tmp/get-docker.sh || erro \
+          "The Docker install failed. See the output above." \
+          "A instalacao do Docker falhou. Veja a saida acima."
+        rm -f /tmp/get-docker.sh
+      fi
       # Recem-instalado, o servico costuma ficar parado e o usuario fora do grupo.
       $SUDO systemctl enable --now docker >/dev/null 2>&1 || true
       if [ "$(id -u)" != "0" ]; then
