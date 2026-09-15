@@ -25,12 +25,32 @@ import urllib.request
 CONFIG = os.path.join(os.environ.get("HERMES_HOME", "/var/lib/hermes"), "checkpoint", "config.json")
 
 
+# Preenchido quando o config existe e esta quebrado. "Nao configurado" e
+# "configurado errado" pedem respostas opostas do agente, e colapsar os dois em
+# lista vazia mandava o dono configurar de novo uma coisa que ele ja tinha
+# configurado -- com o arquivo a um caractere de funcionar.
+FALHA_CONFIG = ""
+
+
 def urls() -> list[str]:
+    global FALHA_CONFIG
     try:
         with open(CONFIG, encoding="utf-8") as f:
-            return [u for u in (json.load(f).get("calendarios") or []) if u.startswith("http")]
-    except (OSError, ValueError):
+            dados = json.load(f)
+    except FileNotFoundError:
         return []
+    except OSError as e:
+        FALHA_CONFIG = f"{CONFIG} existe mas nao pode ser lido: {e.__class__.__name__}"
+        return []
+    except ValueError as e:
+        # O proprio agente escreve este arquivo a mao, por heredoc, sem validar:
+        # JSON malformado e o caminho de falha provavel, nao o improvavel.
+        FALHA_CONFIG = f"{CONFIG} nao e JSON valido: {e}"
+        return []
+    if not isinstance(dados, dict):
+        FALHA_CONFIG = f"{CONFIG} deveria conter um objeto JSON"
+        return []
+    return [u for u in (dados.get("calendarios") or []) if u.startswith("http")]
 
 
 def desdobrar(texto: str) -> str:
@@ -91,7 +111,7 @@ def main() -> int:
     enderecos = urls()
     if not enderecos:
         print(json.dumps({
-            "erro": "nenhum calendário configurado",
+            "erro": FALHA_CONFIG or "nenhum calendário configurado",
             "como_resolver": (
                 "peça ao dono o endereço secreto em formato iCal do calendário dele "
                 "(no Google: Configurações do calendário > Endereço secreto no formato iCal; "

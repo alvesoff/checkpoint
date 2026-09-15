@@ -64,16 +64,28 @@ def projetos() -> list[str]:
 
 def rodar(caminho: str, *args: str) -> dict:
     """Chama um script irmão. Falha dele não derruba o resumo — um resumo
-    incompleto ainda serve; um resumo que não chega, não."""
+    incompleto ainda serve; um resumo que não chega, não.
+
+    Mas falha CALADA derruba mais do que parece: devolver {} fazia o resumo da
+    manhã perder, sem dizer nada, justamente o campo que abre a mensagem. Agora
+    a falha volta nomeada, para o resumo poder contar que aquela parte faltou.
+    """
     try:
         r = subprocess.run(
             [sys.executable, caminho, *args],
-            capture_output=True, text=True, timeout=300,
+            capture_output=True, text=True, timeout=270,
             encoding="utf-8", errors="replace",
         )
+    except subprocess.TimeoutExpired:
+        return {"_falhou": f"{os.path.basename(caminho)} passou de 270s"}
+    except (OSError, subprocess.SubprocessError) as e:
+        return {"_falhou": f"{os.path.basename(caminho)} não rodou: {e.__class__.__name__}"}
+    try:
         return json.loads(r.stdout)
-    except (OSError, subprocess.SubprocessError, ValueError):
-        return {}
+    except ValueError:
+        motivo = (r.stderr or "").strip().splitlines()
+        return {"_falhou": f"{os.path.basename(caminho)} não devolveu JSON"
+                           + (f": {motivo[-1][:120]}" if motivo else "")}
 
 
 def commits_de_hoje() -> list[dict]:
@@ -164,11 +176,19 @@ def manha() -> dict:
     # Vem da lista de demandas porque é lá que os dois eixos são cruzados.
     lista = rodar(f"{SKILLS}/todo/scripts/demandas.py", "listar")
 
+    # Sem isto, uma falha da lista apagava em silencio os dois campos abaixo --
+    # que sao a ABERTURA da mensagem da manha. O resumo saia falando de horas
+    # livres como se nao houvesse nada a priorizar, e ninguem descobria.
+    avisos = [d["_falhou"] for d in (cal, lista) if isinstance(d, dict) and d.get("_falhou")]
+
     return {
         "momento": "manha",
         "data": hoje.isoformat(),
         "o_que_ninguem_vai_cobrar_hoje": lista.get("o_que_ninguem_vai_cobrar_hoje"),
         "quadrantes": lista.get("por_quadrante"),
+        # Presente so quando alguma parte faltou: diga ao dono o que nao entrou,
+        # em vez de entregar um resumo menor fingindo que esta inteiro.
+        **({"partes_que_faltaram": avisos} if avisos else {}),
         "reunioes": [{"titulo": e["titulo"], "inicio": e["inicio"], "minutos": e.get("minutos")}
                      for e in eventos],
         "minutos_de_reuniao": ocupado,

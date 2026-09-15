@@ -104,7 +104,10 @@ def rodar(caminho: str, *args: str) -> dict:
     try:
         r = subprocess.run(
             [sys.executable, caminho, *args],
-            capture_output=True, text=True, timeout=600,
+            # Menor que o teto de quem chama (o resumo espera 270s): maior,
+            # e o de fora estoura primeiro e a lista inteira se perde em vez de
+            # voltar sem um detector.
+            capture_output=True, text=True, timeout=120,
             encoding="utf-8", errors="replace",
         )
         saida = json.loads(r.stdout)
