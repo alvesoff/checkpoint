@@ -160,7 +160,7 @@ if ! "$DOCKER" --version >/dev/null 2>&1; then
         # found", e sincronizar sem atualizar (-Sy) deixa o sistema em partial
         # upgrade, que o Arch desaconselha e que quebra de formas dificeis de
         # diagnosticar depois.
-        $SUDO pacman -Syu --needed --noconfirm docker docker-compose || erro \
+        $SUDO pacman -Syu --needed --noconfirm docker docker-compose docker-buildx || erro \
           "pacman could not install docker. See the output above." \
           "O pacman nao conseguiu instalar o docker. Veja a saida acima."
       else

@@ -8,7 +8,13 @@ FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-4747960eaa8a44ac24424bf0cc6c
 
 # Identidade. O plow-init compõe o SOUL.md a cada boot como "persona da base +
 # este arquivo", então nada é copiado direto para /var/lib/hermes/SOUL.md.
-COPY --chmod=0644 runtime/persona.md /opt/hermes/plow-seed/persona.md
+# `COPY --chmod` exigiria BuildKit, e o Docker Engine instalado pelo gerenciador
+# de pacotes vem sem ele: no Docker Desktop o BuildKit e o padrao, num Arch com
+# `pacman -S docker` nao e, e a construcao morre em
+# "the --chmod option requires BuildKit". Um COPY seguido de chmod funciona nos
+# dois, e o custo e uma camada.
+COPY runtime/persona.md /opt/hermes/plow-seed/persona.md
+RUN chmod 0644 /opt/hermes/plow-seed/persona.md
 
 # O reporter do Agent Index — o ÚNICO requisito obrigatório do hackathon.
 #
@@ -63,10 +69,15 @@ RUN printf '[safe]\n\tdirectory = *\n' > /etc/gitconfig && chmod 0644 /etc/gitco
 # edite um arquivo em $HERMES_HOME/skills congela aquela skill para sempre: o
 # sync do runtime passa a pular o diretorio inteiro e nenhuma correcao deste
 # repositorio chega mais nesta instalacao.
-COPY --chmod=0755 image/cont-init.d/04-checkpoint-skills /etc/cont-init.d/04-checkpoint-skills
-COPY --chmod=0755 image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-config
+COPY image/cont-init.d/04-checkpoint-skills /etc/cont-init.d/04-checkpoint-skills
+COPY image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-config
 
 # Solta o prompt de sistema preso na sessao. Sem isto, toda persona nova so
 # alcanca quem instalar DEPOIS dela: quem ja estava conversando carrega para
 # sempre o texto do dia em que abriu a conversa. Ver o proprio script.
-COPY --chmod=0755 image/cont-init.d/06-refresh-persona /etc/cont-init.d/06-refresh-persona
+COPY image/cont-init.d/06-refresh-persona /etc/cont-init.d/06-refresh-persona
+# Os tres juntos, numa camada so. cont-init nao executa o que nao e executavel,
+# e a falha seria silenciosa: o boot segue e a etapa simplesmente nao acontece.
+RUN chmod 0755 /etc/cont-init.d/04-checkpoint-skills \
+               /etc/cont-init.d/05-checkpoint-config \
+               /etc/cont-init.d/06-refresh-persona
