@@ -30,7 +30,7 @@ ninguém. Variável que o sistema operacional ou o framework já entregam (`SHEL
 
 Abra pelo que quebra alguém **agora**, que é referência e comando, não pela lista de variáveis:
 
-> O README do `metrics-dashboard` manda o banco ficar em `./data/status.db`, e esse caminho não existe no
+> O README do `metrics-dashboard` manda o banco ficar em `./data/metrics.db`, e esse caminho não existe no
 > repositório. Quem seguir o passo a passo trava aí.
 
 **Antes de dizer que um comando não existe, confira onde ele poderia estar.** Em monorepo com
@@ -113,7 +113,7 @@ não suponha.
 Quem abre o documento tem que entender o projeto em menos de um minuto:
 
 1. **O que faz** — o problema que resolve, em uma ou duas frases. Não "sistema de gestão": *"controla
-   a o ponto da equipe e fecha a folha de horas do mês"*.
+   o ponto da equipe e fecha a folha de horas do mês"*.
 2. **Stack** — linguagem, framework, banco. Saem de `dependencias_principais` e dos arquivos de
    execução.
 3. **Como rodar** — o caminho completo, do clone ao serviço de pé. Os comandos vêm de

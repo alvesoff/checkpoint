@@ -98,7 +98,7 @@ Ao falar dele, **diga o tempo parado**. "api-pagamentos tem 1 arquivo não salvo
 ## Prazo declarado
 
 ```sh
-demandas.py adicionar "fechar a folha de horas" payroll-api 2026-09-19
+demandas.py adicionar "fechar a folha do mês" payroll-api 2026-09-19
 ```
 
 A data no fim é o único jeito de o dono criar urgência por conta própria. Sem ela, urgência só
