@@ -206,6 +206,12 @@ prompt when a session is created and keeps it. Checking `SOUL.md` after a build 
 was *published*, not that it *arrived* — `image/cont-init.d/06-refresh-persona` exists to release
 that pin on every boot. If you remove it, persona edits stop reaching open conversations.
 
+**Editing a bundled skill in the agent's home does not survive a restart.** A boot-time step
+reimposes the nine skills of this agent from the image, because the runtime's skill sync skips any
+directory whose copy in the home differs — which quietly freezes that skill against every future
+fix. The trade is deliberate: customise these skills in the repo and rebuild, not in
+`$HERMES_HOME/skills`.
+
 **Anything that runs unattended lives outside the agent's home**, root-owned. What sits inside
 `$HERMES_HOME` the agent can rewrite, and a rewritten script still runs on schedule holding the
 credential.
