@@ -36,7 +36,15 @@ NOME_PROIBIDO = re.compile(
     r"credentials?\.json|service-account.*\.json|"
     r"id_rsa|id_ed25519|.*\.pem|.*\.p12|.*\.pfx|.*\.keystore|"
     r".*\.sql(\.gz)?|.*\.dump)$", re.I)
+# Duas listas, porque sao duas perguntas diferentes e uma constante so
+# respondia as duas. NOME_LIBERADO diz "este arquivo PODE entrar no commit":
+# schema.sql e migrations/ sao codigo legitimo, ainda que casem com a regra de
+# nome arriscado. CONTEUDO_LIBERADO diz "nao vale varrer o conteudo", e ai so
+# entra arquivo de exemplo, que existe para mostrar o formato da variavel.
 NOME_LIBERADO = re.compile(r"\.(example|sample|template|dist)$|schema\.sql$|migrations?/", re.I)
+# Uma migration com `CREATE USER ... PASSWORD` e o unico achado do produto que
+# vaza credencial de producao, e era exatamente o que ficava de fora.
+CONTEUDO_LIBERADO = re.compile(r"\.(example|sample|template|dist)$", re.I)
 
 # Segredo no conteúdo das linhas ADICIONADAS. Só linha `+`: o que já estava lá
 # não é decisão deste commit, e acusá-lo transforma toda revisão em ruído.
@@ -50,6 +58,14 @@ SEGREDO = [
         r"(postgres|postgresql|mysql|mongodb(\+srv)?|redis|amqp)://[^\s:@/]+:[^\s:@/]+@")),
     ("senha ou segredo literal", re.compile(
         r"(?i)\b(password|passwd|secret|api[_-]?key|token)\b\s*[:=]\s*[\"'][^\"'\s$<{]{8,}[\"']")),
+    # SQL nao usa `=` para isto: `CREATE USER app WITH PASSWORD 'x'` e
+    # `IDENTIFIED BY 'x'` escapam do padrao acima, e migration e justamente
+    # onde credencial de producao aparece escrita por extenso. Placeholder
+    # obvio fica de fora -- alarme falso ensina a ignorar o alarme verdadeiro.
+    ("credencial em SQL", re.compile(
+        r"""(?i)\b(?:password|identified\s+by)\s+['"]"""
+        r"""(?!(?:password|changeme|senha|placeholder|your[_-]?\w+|x{3,})['"])"""
+        r"""[^'"\s$<{]{8,}['"]""")),
 ]
 
 # Sobra de depuração. Cada uma some sozinha até o dia em que vai para produção.
@@ -162,7 +178,7 @@ def main() -> int:
         # vazamento: `.env.example` sempre traz `postgres://user:password@host`,
         # e acusá-lo ensina o dono a ignorar o aviso verdadeiro. Mesma regra que
         # o `stack-audit` já aplica no vigia de segredo.
-        if NOME_LIBERADO.search(arquivo):
+        if CONTEUDO_LIBERADO.search(arquivo):
             continue
 
         corpo = "\n".join(linhas)
