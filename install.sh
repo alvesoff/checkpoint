@@ -104,6 +104,17 @@ erro() { msg "$1" "$2" >&2; exit 1; }
 msg "Checkpoint — installer" "Checkpoint — instalador"
 echo
 
+# Qual sistema, porque daqui para baixo cada um falha de um jeito e a mesma
+# mensagem para os tres manda a pessoa fazer a coisa errada. WSL se declara
+# Linux, que e o certo: o docker dele e o do Linux.
+case "$(uname -s 2>/dev/null || echo desconhecido)" in
+  Darwin)                SO=mac;;
+  Linux)                 SO=linux;;
+  MINGW*|MSYS*|CYGWIN*)  SO=windows;;
+  *)                     SO=outro;;
+esac
+
+
 DOCKER=docker
 command -v docker >/dev/null 2>&1 || {
   # Docker Desktop no Windows nem sempre exporta o docker para o PATH do Git Bash.
@@ -116,16 +127,57 @@ command -v docker >/dev/null 2>&1 || {
     [ -x "$tentativa" ] && DOCKER="$tentativa" && break
   done
 }
-"$DOCKER" --version >/dev/null 2>&1 || erro \
-  "Docker not found. Install Docker Desktop (or the docker engine) and run this again." \
-  "Docker não encontrado. Instale o Docker Desktop (ou o engine) e rode de novo."
-
-case "$(uname -s 2>/dev/null || echo desconhecido)" in
-  Darwin)                SO=mac;;
-  Linux)                 SO=linux;;
-  MINGW*|MSYS*|CYGWIN*)  SO=windows;;
-  *)                     SO=outro;;
-esac
+if ! "$DOCKER" --version >/dev/null 2>&1; then
+  # O Windows ja oferecia instalar pelo winget e o Mac ja abre o Docker Desktop.
+  # No Linux o script so reclamava e morria: quem seguiu o link de instalacao
+  # batia numa parede e tinha que ir procurar como instalar Docker sozinho.
+  # Existe caminho oficial e de uma linha, entao nao ha motivo para nao oferecer.
+  if [ "$SO" = linux ]; then
+    msg "Docker is not installed, and the agent runs in a container." \
+        "O Docker nao esta instalado, e o agente roda em container."
+    SUDO=""
+    if [ "$(id -u)" != "0" ]; then
+      if command -v sudo >/dev/null 2>&1; then
+        SUDO="sudo"
+      else
+        erro "Docker is missing and there is no sudo here. Install docker as root, then run this again." \
+             "Falta o Docker e nao ha sudo aqui. Instale o docker como root e rode de novo."
+      fi
+    fi
+    if confirmar "Install Docker Engine now, with the official script? (asks for your password)" \
+                 "Instalar o Docker Engine agora, pelo script oficial? (vai pedir sua senha)" s; then
+      command -v curl >/dev/null 2>&1 || erro \
+        "curl is needed to fetch the Docker installer." \
+        "Preciso do curl para baixar o instalador do Docker."
+      # get.docker.com e publicado e mantido pela propria Docker, e cobre Debian,
+      # Ubuntu, Fedora, CentOS e derivados. Baixado para arquivo antes de rodar:
+      # `curl | sh` como root esconde o que esta sendo executado.
+      curl -fsSL https://get.docker.com -o /tmp/get-docker.sh || erro \
+        "Could not download the Docker installer." \
+        "Nao consegui baixar o instalador do Docker."
+      $SUDO sh /tmp/get-docker.sh || erro \
+        "The Docker install failed. See the output above." \
+        "A instalacao do Docker falhou. Veja a saida acima."
+      rm -f /tmp/get-docker.sh
+      # Recem-instalado, o servico costuma ficar parado e o usuario fora do grupo.
+      $SUDO systemctl enable --now docker >/dev/null 2>&1 || true
+      if [ "$(id -u)" != "0" ]; then
+        $SUDO usermod -aG docker "$(id -un)" >/dev/null 2>&1 || true
+        msg "Added you to the docker group. This shell does not have it yet." \
+            "Adicionei voce ao grupo docker. Este shell ainda nao tem o grupo."
+      fi
+      "$DOCKER" --version >/dev/null 2>&1 || erro \
+        "Docker installed. This shell cannot see it yet: run  newgrp docker  (or log out and back in), then run this again." \
+        "Docker instalado. Este shell ainda nao enxerga: rode  newgrp docker  (ou faca logout/login) e rode isto de novo."
+    else
+      erro "Nothing was installed. Install docker and run this again." \
+           "Nada foi instalado. Instale o docker e rode de novo."
+    fi
+  else
+    erro "Docker not found. Install Docker Desktop (or the docker engine) and run this again." \
+         "Docker não encontrado. Instale o Docker Desktop (ou o engine) e rode de novo."
+  fi
+fi
 
 # `docker info` falha por dois motivos muito diferentes, e ate aqui os dois
 # recebiam "abra o Docker": no Linux, quem esta fora do grupo docker leva
