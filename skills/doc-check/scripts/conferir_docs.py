@@ -20,6 +20,7 @@ achado verdadeiro morre junto. Melhor achar menos.
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import re
@@ -152,6 +153,48 @@ def variaveis_exigidas(repo: str) -> set[str]:
     return exigidas - DISPENSADAS
 
 
+def scripts_do_projeto(repo: str) -> set:
+    """Scripts npm do projeto, contando os dos workspaces.
+
+    Ler só o `package.json` da raiz acusa de sumido todo script declarado num
+    workspace, que é a forma normal de organizar monorepo. Aconteceu de
+    verdade: um README foi reportado chamando `db:migrate:data` "que não
+    existe", e o script estava em `server/package.json` o tempo todo. Dizer que
+    não existe uma coisa que existe é o erro que faz a pessoa parar de conferir
+    o que o agente diz.
+    """
+    def scripts_de(caminho: str) -> set:
+        try:
+            return set((json.loads(ler(caminho)) or {}).get("scripts", {}))
+        except ValueError:
+            return set()
+
+    raiz = os.path.join(repo, "package.json")
+    if not os.path.isfile(raiz):
+        return set()
+
+    try:
+        dados = json.loads(ler(raiz)) or {}
+    except ValueError:
+        return set()
+
+    achados = set(dados.get("scripts", {}))
+
+    # npm aceita lista; yarn clássico aceita {"packages": [...]}.
+    espaco = dados.get("workspaces")
+    if isinstance(espaco, dict):
+        espaco = espaco.get("packages")
+    if not isinstance(espaco, list):
+        return achados
+
+    for padrao in espaco[:20]:
+        if not isinstance(padrao, str):
+            continue
+        for pasta in glob.glob(os.path.join(repo, padrao))[:40]:
+            achados |= scripts_de(os.path.join(pasta, "package.json"))
+    return achados
+
+
 def conferir(repo: str) -> dict:
     docs = arquivos(repo, (".md",), 60)
     if not docs:
@@ -165,14 +208,9 @@ def conferir(repo: str) -> dict:
     # `npm run X` citado e ausente do package.json. É o comando que a pessoa
     # copia, cola e vê falhar no primeiro minuto de contato com o projeto.
     sumidos: list[str] = []
-    pacote = os.path.join(repo, "package.json")
-    if os.path.isfile(pacote):
-        try:
-            scripts = set((json.loads(ler(pacote)) or {}).get("scripts", {}))
-        except ValueError:
-            scripts = set()
-        if scripts:
-            sumidos = sorted({a for a in NPM_RUN.findall(tudo) if a not in scripts})
+    scripts = scripts_do_projeto(repo)
+    if scripts:
+        sumidos = sorted({a for a in NPM_RUN.findall(tudo) if a not in scripts})
 
     # Variável exigida que nenhum documento nem arquivo de exemplo menciona. É o
     # que faz o projeto subir na máquina de quem escreveu e em nenhuma outra.
