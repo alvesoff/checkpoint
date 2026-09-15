@@ -4,3 +4,4 @@ plow-credentials.*
 projects/
 __pycache__/
 *.pyc
+compose.override.yml
