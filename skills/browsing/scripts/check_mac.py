@@ -40,8 +40,28 @@ def ler(nome: str) -> str:
         return ""
 
 
+# Onde o latch-probe guarda a URL que removeu do ambiente no boot. Sem isto a
+# checagem confundia "esta conta não tem relay" com "não havia Mac ligado no
+# momento do boot" — e negava, para sempre, uma capacidade que voltou a existir
+# assim que alguém abriu o laptop.
+URL_GUARDADA = "/opt/checkpoint/latch-url"
+
+
+def url_do_relay() -> tuple[str, bool]:
+    """A URL e se ela veio do ambiente (Mac havia no boot) ou do arquivo."""
+    do_ambiente = ler("PLOW_MCP_URL")
+    if do_ambiente:
+        return do_ambiente, True
+    try:
+        with open(URL_GUARDADA, encoding="utf-8") as f:
+            return f.read().strip(), False
+    except OSError:
+        return "", False
+
+
 def main() -> int:
-    url, token = ler("PLOW_MCP_URL"), ler("PLOW_AGENT_TOKEN")
+    url, veio_do_ambiente = url_do_relay()
+    token = ler("PLOW_AGENT_TOKEN")
     if not url or not token:
         print(json.dumps({"mac": False, "motivo": "esta instalação não tem relay configurado"},
                          ensure_ascii=False))
@@ -84,7 +104,17 @@ def main() -> int:
                          ensure_ascii=False))
         return 0
 
-    print(json.dumps({"mac": bool(ferramentas), "ferramentas": ferramentas}, ensure_ascii=False))
+    saida = {"mac": bool(ferramentas), "ferramentas": ferramentas}
+    if ferramentas and not veio_do_ambiente:
+        # O Mac existe agora, mas nao existia quando o container subiu: o probe
+        # do boot tirou a PLOW_MCP_URL do ambiente e o gateway nunca carregou as
+        # ferramentas do Latch nesta execucao. Dizer que ha Mac sem dizer isto
+        # faria o agente prometer uma acao que ele nao consegue executar.
+        saida["conectou_depois_do_boot"] = True
+        saida["aviso"] = ("o Mac esta conectado agora, mas ele nao estava quando este container subiu, "
+                          "entao as ferramentas do Latch nao estao carregadas nesta sessao. "
+                          "Diga isso ao dono e ofereca reiniciar o container para passar a usar o Mac.")
+    print(json.dumps(saida, ensure_ascii=False))
     return 0
 
 

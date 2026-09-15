@@ -16,13 +16,27 @@
 # contorno: o agente para de prometer e de recusar em nome de um Mac inexistente.
 #
 # Roda depois do plow-init, que a publica, e antes do gateway, que a lê.
+#
+# O probe roda UMA vez, no boot. Um Mac que conecte depois nao seria percebido,
+# e ate aqui a skill `browsing` passava a responder "esta instalacao nao tem
+# relay configurado" -- que e falso: o relay existe, so nao havia device ligado
+# naquele instante. Por isso a URL removida fica guardada num arquivo legivel
+# pelo agente: a skill reavalia o relay na hora em que alguem pergunta, e volta
+# a dizer a verdade sem depender de reboot nem de reiniciar o gateway.
 set -eu
 
 VAR=/run/s6/container_environment/PLOW_MCP_URL
+GUARDADA=/opt/checkpoint/latch-url
 [ -f "$VAR" ] || exit 0
 
 URL=$(cat "$VAR" 2>/dev/null || true)
 TOKEN=$(cat /run/s6/container_environment/PLOW_AGENT_TOKEN 2>/dev/null || true)
+
+guardar() {
+  mkdir -p /opt/checkpoint
+  printf '%s' "$1" > "$GUARDADA"
+  chmod 0644 "$GUARDADA"
+}
 
 if [ -z "$URL" ] || [ -z "$TOKEN" ]; then
   rm -f "$VAR"
@@ -39,6 +53,7 @@ CODE=$(curl -s -o /dev/null -w '%{http_code}' -m 20 -X POST "$URL" \
 if [ "$CODE" = "200" ]; then
   echo "[checkpoint] Mac conectado pelo Latch — mantendo PLOW_MCP_URL"
 else
+  guardar "$URL"
   rm -f "$VAR"
   echo "[checkpoint] nenhum Mac conectado (relay respondeu $CODE) — PLOW_MCP_URL removida para o agente nao recusar em nome de um Mac inexistente"
 fi
