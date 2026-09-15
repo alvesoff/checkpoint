@@ -107,9 +107,16 @@ def main() -> int:
             if (atual.get("prompt") or "").strip() == rotina["instrucao"].strip():
                 print(f"{rotina['nome']}: já registrado — nada a fazer")
                 continue
-            # Recriar, e nao editar: `cron edit` nao alcanca todos os campos, e
-            # uma rotina meio atualizada e pior que uma desatualizada.
-            print(f"{rotina['nome']}: instrucao mudou — recriando")
+            # Editar, nao recriar: remove+create apaga o monitor_state e o
+            # historico de execucoes do job. `cron edit --prompt` troca so a
+            # instrucao.
+            print(f"{rotina['nome']}: instrucao mudou — atualizando")
+            r = subprocess.run([HERMES, "cron", "edit", str(atual.get("id")),
+                                "--prompt", rotina["instrucao"]],
+                               capture_output=True, text=True)
+            if r.returncode == 0:
+                continue
+            print(f"{rotina['nome']}: nao consegui editar; recriando")
             subprocess.run([HERMES, "cron", "remove", str(atual.get("id"))],
                            capture_output=True, text=True)
         r = subprocess.run(

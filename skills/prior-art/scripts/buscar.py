@@ -43,6 +43,20 @@ def repos() -> list[str]:
     return achados
 
 
+def _repo_de(caminho: str) -> str:
+    """O repositorio git que contem este arquivo, subindo ate a raiz montada."""
+    atual = os.path.dirname(os.path.abspath(caminho))
+    limite = os.path.abspath(RAIZ)
+    while atual.startswith(limite) and len(atual) >= len(limite):
+        if os.path.isdir(os.path.join(atual, ".git")):
+            return atual
+        pai = os.path.dirname(atual)
+        if pai == atual:
+            break
+        atual = pai
+    return ""
+
+
 def tocado_em(repo: str) -> float:
     """Quando o projeto teve o último commit. Ordena o que é precedente bom."""
     try:
@@ -83,6 +97,7 @@ def main() -> int:
         return 1
 
     por_projeto: dict[str, list[dict]] = {}
+    raiz_do_projeto: dict[str, str] = {}
     for linha in r.stdout.splitlines():
         try:
             evento = json.loads(linha)
@@ -93,7 +108,13 @@ def main() -> int:
         dados = evento["data"]
         caminho = dados["path"]["text"]
         relativo = os.path.relpath(caminho, RAIZ)
-        projeto = relativo.replace("\\", "/").split("/")[0]
+        # O repositorio que contem o arquivo, nao o primeiro segmento do
+        # caminho: com mais de uma pasta de codigo montada o primeiro segmento
+        # e a PASTA, e ai todos os achados caem num balde so e a ordenacao por
+        # recencia consulta o git log de um diretorio que nao e repositorio.
+        repo = _repo_de(caminho)
+        projeto = os.path.basename(repo) if repo else relativo.replace("\\", "/").split("/")[0]
+        raiz_do_projeto[projeto] = repo or os.path.join(RAIZ, projeto)
         texto = (dados["lines"]["text"] or "").strip()
         por_projeto.setdefault(projeto, []).append({
             "arquivo": relativo,
@@ -103,9 +124,14 @@ def main() -> int:
             "trecho": texto[:200],
         })
 
+    # `--max-count` do rg corta por ARQUIVO. Sem este corte, um projeto com
+    # cinquenta arquivos devolvia cinquenta trechos e a saida declarava um teto
+    # que nao existia -- o agente confiava no numero e mandava parede de texto.
+    por_projeto = {p: o[:MAX_POR_PROJETO] for p, o in por_projeto.items()}
+
     ordenados = sorted(
         por_projeto.items(),
-        key=lambda kv: -tocado_em(os.path.join(RAIZ, kv[0])),
+        key=lambda kv: -tocado_em(raiz_do_projeto.get(kv[0], os.path.join(RAIZ, kv[0]))),
     )[:MAX_PROJETOS]
 
     print(json.dumps({

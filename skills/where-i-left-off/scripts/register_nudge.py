@@ -104,9 +104,20 @@ def main() -> int:
         if (job.get("prompt") or "").strip() == INSTRUCAO.strip():
             print(f"já registrado ({job.get('id')}) — nada a fazer")
             return 0
-        # Recriar, e nao editar: `cron edit` nao alcanca todos os campos, e um job
-        # meio atualizado e pior que um desatualizado.
-        print(f"definicao mudou — recriando {NOME} ({job.get('id')})")
+        # Editar, nao recriar: `cron remove` + `create` apaga o monitor_state, e
+        # sem a linha de base o proximo tique conta TUDO como mudanca -- um
+        # falso "apareceu agora" sobre coisa que ja estava la, que e o jeito
+        # mais rapido de alguem desligar um aviso. `cron edit --prompt` troca a
+        # instrucao preservando id, historico e linha de base.
+        print(f"instrucao mudou — atualizando {NOME} ({job.get('id')})")
+        r = subprocess.run([HERMES, "cron", "edit", str(job.get("id")), "--prompt", INSTRUCAO],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            print((r.stdout + r.stderr).strip() or "atualizado")
+            return 0
+        # Falhou a edicao: cair para recriar e perder a linha de base ainda e
+        # melhor do que ficar com a instrucao velha para sempre.
+        print("nao consegui editar; recriando")
         subprocess.run([HERMES, "cron", "remove", str(job.get("id"))],
                        capture_output=True, text=True)
         break
