@@ -1,3 +1,24 @@
+# A credencial do agente. Nunca no contexto de build: o que entra no contexto
+# pode entrar numa camada, e camada publicada não se apaga.
 plow-credentials
 plow-credentials.*
+
+# O .env carrega CODE_DIR, ou seja, o caminho absoluto das pastas de quem
+# instalou. Não é segredo, é a estrutura de pastas da máquina de alguém.
+.env
+.env.*
+
+# Gerado por instalação, com os caminhos absolutos de quem gerou.
+compose.override.yml
+
+# A pasta de código, se alguém a criar aqui dentro. Ela é montada em runtime,
+# nunca copiada: um `projects/` no contexto assaria os projetos do dono na
+# imagem, e a imagem vai para o repositório de quem instala.
+projects/
+
+# Clone da CLI do Plow, feito pelo install.sh na máquina de quem instala.
+tools/plow-agents/
+
 .git
+__pycache__/
+*.pyc
