@@ -25,6 +25,11 @@ services:
       - ${CODE_DIR:-./projects}:${CODE_TARGET:-/projects}:ro
       # A home do agente, preservada entre up/down para manter sessões e setup.
       - agent-home:/var/lib/hermes
+    # Sem isto o agente nao volta sozinho depois que a maquina reinicia: fica
+    # morto e em silencio ate alguem rodar `docker compose up` de novo, e nada
+    # no celular do dono diz que ele parou. `unless-stopped`, nao `always`,
+    # para nao desfazer um `docker compose stop` deliberado.
+    restart: unless-stopped
     # O agente salva a sessão no SIGTERM e o supervisor dele espera 30s; o
     # prazo do Docker tem que ficar fora desse.
     stop_grace_period: 35s
