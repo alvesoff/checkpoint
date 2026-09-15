@@ -5,8 +5,8 @@ outdated or vulnerable dependencies. Reads your calendar and keeps your to-do li
 texts the most important thing nobody is chasing you on; evenings, tomorrow's meeting and its
 project.
 
-All of it over iMessage, from your own machine. It answers when you ask, and it speaks first — but
-only when something actually changed.
+All of it over iMessage, from your own machine. It answers when you ask, and it speaks first: three
+routines only when something actually changed, and two on a fixed schedule, morning and evening.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.sh | sh
@@ -44,9 +44,16 @@ your system.
 | Everything not yet committed | A secret, a `.env`, a `console.log` about to enter the history — the last moment the damage is free |
 | All of the above, plus your calendar, once in the morning and once at night | What fits today, and at night what is still loose plus the state of the project your first meeting tomorrow is about |
 
-Two scheduled routines register themselves on first boot. The hourly one speaks only when a project
-**crosses** a threshold: two days idle with unsaved work, then four, then a week. The six-hourly one
-speaks only when a dependency changes state. Nothing changed means nothing sent and no tokens spent.
+Five scheduled routines register themselves on first boot, and they split into two kinds.
+
+**Three watch for change and stay quiet otherwise.** Hourly: a project **crosses** an idle threshold
+— two days with unsaved work, then four, then a week. Every six hours: a dependency changes state, or
+a new vulnerability shows up in one you declare. Every twelve hours: documentation stops matching the
+code. Nothing changed means nothing sent and no tokens spent.
+
+**Two speak on schedule**, 8am and 6pm on weekdays, and that is the point of them — the morning one
+opens with the thing nobody is going to chase you about today, and the evening one crosses tomorrow's
+first meeting with the state of the project it is about.
 
 ## What this agent cannot reach
 
@@ -166,7 +173,41 @@ only as good as the host serving it, and this runs inside an agent holding a liv
 | "none of the N repositories could be read by git" | Ownership mismatch between host and container. The image ships `/etc/gitconfig` with `safe.directory = *` |
 | Every file shows as unsaved | Repositories cloned with CRLF against an LF index. The agent normalizes for this; if you still see it, the image predates that fix |
 | The agent offers to use your Mac | It should not, because it probes the relay first. If it happens, `PLOW_MCP_URL` survived without a device connected |
-| Nothing is ever sent | Expected for the three monitor routines while nothing crosses a threshold. The two daily summaries do speak on schedule (8am and 6pm on weekdays). `hermes cron runs` inside the container shows every check happening |
+| Nothing is ever sent | Expected for the three monitor routines while nothing crosses a threshold. The two daily summaries do speak on schedule (8am and 6pm on weekdays). `docker compose exec -u hermes agent hermes cron runs` shows every check happening. The `-u hermes`
+is not optional: the runtime hardens its home directory using the uid that invoked it, so running
+`hermes` as root inside the container locks the agent out of `/var/lib/hermes`, and it goes silent
+with nothing in the chat to say why. Restart the container if that happens |
+
+## Adding a skill of your own
+
+This is meant to be forked. A skill is a directory with a `SKILL.md` and a `scripts/` folder, and
+the Dockerfile copies `skills/` wholesale — so a new directory is picked up by the next build with
+no wiring. What follows is the part that is not obvious, learned by getting each one wrong first.
+
+**A skill that is not in the persona is a skill the agent refuses to use.** `runtime/persona.md` is
+what the agent reads to know what it is. A capability that works perfectly, with the script on disk
+and the skill installed, will still get "that is not something I do" if no line in the persona
+claims it. This is the single most expensive mistake in this repo: the calendar shipped working and
+the agent denied having one, and nobody found out from a test — only from asking it.
+
+**Every prohibition in the persona has to name what it does NOT cover.** "Never writes to your
+projects" is true and it is what makes the mount safe. But without a carve-out it spreads to
+everything with the word *write* in it, and the agent starts refusing to write a commit message, or
+to note a task on its own to-do list. The failure is quiet and permanent: the person concludes the
+product cannot do it and stops asking.
+
+**The `description:` in a SKILL.md is cut to about 57 characters** before the model ever sees it. So
+it cannot carry a list of trigger words. Routing vocabulary belongs in the persona, which arrives
+whole.
+
+**The persona on disk is not the prompt of a live conversation.** The runtime writes the system
+prompt when a session is created and keeps it. Checking `SOUL.md` after a build proves the persona
+was *published*, not that it *arrived* — `image/cont-init.d/06-refresh-persona` exists to release
+that pin on every boot. If you remove it, persona edits stop reaching open conversations.
+
+**Anything that runs unattended lives outside the agent's home**, root-owned. What sits inside
+`$HERMES_HOME` the agent can rewrite, and a rewritten script still runs on schedule holding the
+credential.
 
 ## License
 
