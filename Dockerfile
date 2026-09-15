@@ -59,6 +59,11 @@ RUN printf '[safe]\n\tdirectory = *\n' > /etc/gitconfig && chmod 0644 /etc/gitco
 # Desliga o embrulho do cron na resposta entregue. Ver o proprio script: sem isso
 # todo aviso proativo chega com "Cronjob Response", id do job e instrucoes de
 # gerenciamento no meio da mensagem.
+# Reimpoe as nossas skills por cima da home a cada boot. Sem isto, um turno que
+# edite um arquivo em $HERMES_HOME/skills congela aquela skill para sempre: o
+# sync do runtime passa a pular o diretorio inteiro e nenhuma correcao deste
+# repositorio chega mais nesta instalacao.
+COPY --chmod=0755 image/cont-init.d/04-checkpoint-skills /etc/cont-init.d/04-checkpoint-skills
 COPY --chmod=0755 image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-config
 
 # Solta o prompt de sistema preso na sessao. Sem isto, toda persona nova so

@@ -1,0 +1,57 @@
+#!/command/with-contenv sh
+# Reimpõe as skills deste agente por cima da home, a cada boot.
+#
+# O runtime sincroniza as skills empacotadas para a home do agente e mantém um
+# manifesto com o hash de origem de cada uma. A regra dele, em
+# `/opt/hermes/tools/skills_sync.py`:
+#
+#     If bundled changed and user copy differs: user customized it -> SKIP
+#
+# É a regra certa para quem customiza a própria skill à mão. Mas a home é
+# gravável pelo agente, e um único turno que edite um arquivo ali faz aquele
+# diretório divergir para sempre: a partir daquele momento, nenhuma correção
+# publicada neste repositório alcança mais esta instalação, em silêncio, e o
+# hash é por diretório inteiro — um caractere fora do lugar congela a skill.
+#
+# Aconteceu com a `delivery-text`: uma melhoria nasceu dentro do container em
+# 14/09 e nunca voltou ao repositório. Descoberta só por md5sum comparativo.
+#
+# Aqui a origem é sempre `/opt/hermes/skills`, que é root-owned e vem da
+# imagem. A linha do manifesto é removida junto para o sync recolocar o hash
+# certo no lugar, em vez de ficar apontando para uma versão que já não existe.
+set -e
+
+BUNDLED=/opt/hermes/skills
+HOME_SKILLS=/var/lib/hermes/skills
+MANIFESTO="$HOME_SKILLS/.bundled_manifest"
+
+[ -d "$BUNDLED" ] || exit 0
+[ -d "$HOME_SKILLS" ] || exit 0
+
+for origem in "$BUNDLED"/agenda "$BUNDLED"/browsing "$BUNDLED"/daily \
+              "$BUNDLED"/delivery-text "$BUNDLED"/dependency-radar \
+              "$BUNDLED"/doc-check "$BUNDLED"/stack-audit "$BUNDLED"/todo \
+              "$BUNDLED"/where-i-left-off; do
+  [ -d "$origem" ] || continue
+  nome=$(basename "$origem")
+  destino="$HOME_SKILLS/$nome"
+
+  # Só mexe quando há diferença: assim o boot normal não reescreve nada e o
+  # mtime dos arquivos continua contando a história verdadeira.
+  if [ -d "$destino" ] && diff -rq "$origem" "$destino" >/dev/null 2>&1; then
+    continue
+  fi
+
+  echo "[04-checkpoint-skills] reimpondo $nome a partir da imagem"
+  rm -rf "$destino"
+  cp -a "$origem" "$destino"
+  chown -R hermes:hermes "$destino"
+
+  # Sem isto o manifesto guarda o hash de uma versão que não está mais lá, e o
+  # próximo sync volta a decidir errado.
+  if [ -f "$MANIFESTO" ]; then
+    grep -v "^$nome:" "$MANIFESTO" > "$MANIFESTO.novo" 2>/dev/null || true
+    mv "$MANIFESTO.novo" "$MANIFESTO"
+    chown hermes:hermes "$MANIFESTO"
+  fi
+done
