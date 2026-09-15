@@ -170,4 +170,4 @@ only as good as the host serving it, and this runs inside an agent holding a liv
 
 ## License
 
-Apache-2.0.
+MIT. Required by the hackathon rules, and the right license for something meant to be forked.
