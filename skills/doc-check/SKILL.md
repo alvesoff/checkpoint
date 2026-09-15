@@ -28,10 +28,16 @@ ninguém. Variável que o sistema operacional ou o framework já entregam (`SHEL
 
 ## Como entregar
 
-Abra pelo que quebra alguém **agora**, que é comando e referência, não pela lista de variáveis:
+Abra pelo que quebra alguém **agora**, que é referência e comando, não pela lista de variáveis:
 
-> O README do `portal-atendimento` manda rodar `npm run db:migrate:data`, e esse script não existe
-> mais no package.json. Quem seguir o passo a passo trava aí.
+> O README do `metrics-dashboard` manda o banco ficar em `./data/status.db`, e esse caminho não existe no
+> repositório. Quem seguir o passo a passo trava aí.
+
+**Antes de dizer que um comando não existe, confira onde ele poderia estar.** Em monorepo com
+`workspaces`, um `npm run X` que não está na raiz costuma estar num sub-pacote — e aí ele existe, só
+não roda do diretório que o documento sugere. Dizer "não existe" sobre coisa que existe é o erro que
+faz a pessoa parar de conferir tudo o que você diz. Se for esse o caso, diga o que é de verdade:
+*"esse script está em `server/package.json`; do diretório onde o documento coloca você, ele falha"*.
 
 Para variáveis, o número primeiro e o nome perigoso depois:
 
