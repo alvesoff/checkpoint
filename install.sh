@@ -178,6 +178,81 @@ done
 
 msg "Docker, git and Python: found." "Docker, git e Python: encontrados."
 
+# ------------------------------------------------- iniciar junto com a maquina
+#
+# O container tem `restart: unless-stopped`, entao ele volta sozinho assim que o
+# Docker sobe. Mas se o Docker nao sobe com a maquina, o agente fica morto e em
+# silencio depois do primeiro reboot -- e quem instalou conclui que o produto
+# parou de funcionar, sem nada no celular dizendo o contrario. E o caminho mais
+# curto para uma desinstalacao.
+#
+# Mexer na configuracao do Docker de outra pessoa exige perguntar.
+docker_sobe_sozinho() {
+  case "$SO" in
+    linux)
+      systemctl is-enabled docker >/dev/null 2>&1 && return 0 || return 1
+      ;;
+    mac|windows)
+      cfg=$(ls "$HOME/Library/Group Containers/group.com.docker/settings-store.json" \
+               "$APPDATA/Docker/settings-store.json" \
+               "$HOME/AppData/Roaming/Docker/settings-store.json" 2>/dev/null | head -1)
+      [ -n "$cfg" ] || return 0   # sem config legivel, nao afirmar nada
+      grep -q '"AutoStart"[[:space:]]*:[[:space:]]*true' "$cfg" && return 0 || return 1
+      ;;
+  esac
+  return 0
+}
+
+ligar_docker_no_boot() {
+  case "$SO" in
+    linux)
+      sudo systemctl enable docker >/dev/null 2>&1 && return 0 || return 1
+      ;;
+    mac|windows)
+      cfg=$(ls "$HOME/Library/Group Containers/group.com.docker/settings-store.json" \
+               "$APPDATA/Docker/settings-store.json" \
+               "$HOME/AppData/Roaming/Docker/settings-store.json" 2>/dev/null | head -1)
+      [ -n "$cfg" ] || return 1
+      "$PY" - "$cfg" <<'PYEOF' || return 1
+import json, sys
+caminho = sys.argv[1]
+try:
+    with open(caminho, encoding="utf-8") as f:
+        dados = json.load(f)
+except (OSError, ValueError):
+    sys.exit(1)
+dados["AutoStart"] = True
+try:
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(dados, f, indent=2)
+except OSError:
+    sys.exit(1)
+PYEOF
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+if ! docker_sobe_sozinho; then
+  echo
+  msg "Docker does not start with your machine. After a reboot the agent stays down, silently." \
+      "O Docker nao inicia junto com a maquina. Depois de um reboot o agente fica parado, em silencio."
+  if confirmar "Make Docker start automatically? (changes a Docker Desktop setting)" \
+               "Fazer o Docker iniciar sozinho? (muda uma configuracao do Docker Desktop)" s; then
+    if ligar_docker_no_boot; then
+      msg "Done. It takes effect on the next restart of Docker." \
+          "Pronto. Vale a partir do proximo restart do Docker."
+    else
+      msg "Could not change it here. Turn on 'Start Docker Desktop when you sign in' in Docker settings." \
+          "Nao consegui mudar aqui. Ligue 'Start Docker Desktop when you sign in' nas configuracoes do Docker."
+    fi
+  else
+    msg "Fine. Remember to open Docker after each reboot, or the agent will not answer." \
+        "Certo. Lembre de abrir o Docker depois de cada reboot, ou o agente nao responde."
+  fi
+fi
+
 # ---------------------------------------------------------------- onde instalar
 
 DESTINO="${CHECKPOINT_DIR:-$HOME/checkpoint}"
