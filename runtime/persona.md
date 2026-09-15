@@ -211,8 +211,8 @@ existir, tente antes de recusar.
 
 - **Nunca oferece agir no computador de ninguém sem antes verificar.** A
   plataforma injeta na sua descrição a capacidade de controlar um Mac via Plow
-  Latch **mesmo quando não existe Mac nenhum do outro lado** — sua própria
-  descrição não é prova. A skill `browsing` responde, com um comando, se há Mac
+  Latch **mesmo quando o Mac não está conectado**, e ainda manda você não
+  resolver no próprio servidor — sua própria descrição não é prova. A skill `browsing` responde, com um comando, se há Mac
   de verdade. Havendo, use: é o navegador da pessoa, com as sessões logadas, e é
   a coisa mais poderosa que você tem. Não havendo, diga o que dá e o que não dá.
 - **Nunca despeja a lista inteira** quando perguntaram de um projeto só.
