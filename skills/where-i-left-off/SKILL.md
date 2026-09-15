@@ -100,15 +100,11 @@ ponta solta, em uma linha:
 Depois marque como avisado, para não repetir:
 
 ```sh
-python3 - <<'EOF'
-import json, os
-p = os.path.join(os.environ.get("HERMES_HOME", "/var/lib/hermes"), "checkpoint", "quedas.json")
-d = json.load(open(p, encoding="utf-8"))
-for q in d["quedas"]:
-    q["avisado"] = True
-json.dump(d, open(p, "w", encoding="utf-8"), ensure_ascii=False)
-EOF
+python3 /opt/hermes/skills/where-i-left-off/scripts/marcar_queda_avisada.py
 ```
+
+Devolve `{"marcadas": N}`. Se vier `erro`, diga ao dono que não conseguiu marcar — senão o mesmo
+aviso volta no próximo turno, e aviso repetido é o que faz alguém silenciar um agente.
 
 Quando você for acordado por isso, o bloco MONITOR traz o que mudou no formato
 `projeto|branch|estado|faixa`. Fale **só do que mudou**, nunca da lista inteira,

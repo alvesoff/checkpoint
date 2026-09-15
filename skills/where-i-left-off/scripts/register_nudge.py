@@ -83,7 +83,7 @@ def publicar_scripts() -> None:
     para que uma alteração feita por um turno não sobreviva a um novo setup.
     """
     SCRIPTS.mkdir(parents=True, exist_ok=True)
-    for nome in ("nudge_digest.py", "scan_projects.py"):
+    for nome in ("nudge_digest.py", "scan_projects.py", "marcar_queda_avisada.py"):
         shutil.copyfile(CANONICO / nome, SCRIPTS / nome)
 
 
