@@ -53,11 +53,14 @@ def git(repo: str, *args: str) -> str:
     return saida.stdout.strip() if saida.returncode == 0 else ""
 
 
-# Quantos níveis abaixo da raiz um repositório ainda conta. Dois, porque a
-# instalação pode montar mais de uma pasta de código — `/projects/<pasta>/<repo>`
-# — e porque monorepo com `backend/` e `frontend/` é comum. Três já começaria a
-# achar dependência de dependência.
-PROFUNDIDADE = 2
+# Quantos níveis abaixo da raiz um repositório ainda conta. Três, porque o
+# instalador pode montar a pasta-PAI das escolhidas — e aí o repositório fica em
+# `/projects/<pai>/<pasta>/<repo>`, um nível mais fundo do que quando cada pasta
+# era montada direto. Dois deixava esse caso invisível.
+# Descer mais não sai caro como parece: um repositório encontrado encerra o
+# ramo, então não se entra dentro de projeto nenhum, e IGNORAR corta o que
+# guarda código de terceiro.
+PROFUNDIDADE = 3
 
 # Pastas que nunca contêm projeto do dono, só código de terceiro. Descer nelas
 # encontra milhares de repositórios que não são dele e estoura o turno.

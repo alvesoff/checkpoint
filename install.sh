@@ -307,6 +307,30 @@ done
 # entram por um override, cada uma em /projects/<nome>. Repositório novo dentro
 # de qualquer uma delas é encontrado na próxima varredura, sem reinstalar nada —
 # só uma pasta-raiz nova exige rodar isto de novo.
+# Se todas as escolhidas dividem o mesmo pai, oferecer o pai: assim uma pasta
+# nova criada ali dentro passa a ser acompanhada sozinha, sem reinstalar. O
+# HOME nunca entra nessa conta -- ali moram .ssh, .aws e .docker, e este agente
+# tem uma skill que procura segredo em arquivo solto e conta para o dono.
+PAI=""
+if [ "$(printf '%s' "$ESCOLHIDAS" | sed '/^$/d' | wc -l | tr -d ' ')" -gt 1 ]; then
+  PAIS=$(printf '%s' "$ESCOLHIDAS" | sed '/^$/d' | while IFS= read -r e; do dirname "$e"; done | sort -u)
+  if [ "$(printf '%s
+' "$PAIS" | sed '/^$/d' | wc -l | tr -d ' ')" -eq 1 ]; then
+    case "$PAIS" in
+      "$HOME"|"$HOME"/|/|//*|?:/|?:) ;;
+      *) [ -d "$PAIS" ] && PAI="$PAIS";;
+    esac
+  fi
+fi
+if [ -n "$PAI" ]; then
+  echo
+  msg "All of them live in $PAI." "Todas elas estão em $PAI."
+  if confirmar "Watch $PAI itself? A new folder there is then picked up on its own."                "Acompanhar $PAI inteiro? Aí uma pasta nova ali já entra sozinha." s; then
+    ESCOLHIDAS="$PAI
+"
+  fi
+fi
+
 # A pasta com MAIS repositorios vira a raiz. Escolher pela ordem do heredoc
 # elegia a primeira que existisse: numa maquina com uma pasta de 1 repo e outra
 # de 25, a de 1 virava a principal e a de 25 ia para o override.
