@@ -151,7 +151,14 @@ def consultar(eco: str, pacote: str, cache: dict) -> dict:
     except (urllib.error.URLError, urllib.error.HTTPError, ValueError, OSError):
         # Pacote privado, nome interno ou rede fora: não é erro nosso, é um
         # pacote sobre o qual não temos o que dizer.
+        #
+        # E NÃO vai para o cache. Guardar a falha por 24h faz o pacote sumir da
+        # assinatura do monitor durante um dia inteiro e voltar depois — duas
+        # interrupções do dono por um soluço de rede de 15 segundos. Aconteceu
+        # em 15/09 às 02:09: o radar acordou de madrugada e repetiu um alerta de
+        # vulnerabilidade que o dono já tinha recebido às 20:06.
         registro["erro"] = True
+        return registro
     cache[chave] = registro
     return registro
 
@@ -178,11 +185,16 @@ def main() -> int:
 
     cache = carregar_cache()
     achados = []
+    # Quem a rede não deixou consultar. Some da lista de achados, e por isso
+    # quem monta a assinatura precisa saber que ele é DESCONHECIDO, não
+    # RESOLVIDO — as duas coisas se parecem por fora e significam o oposto.
+    nao_consultados = []
     # Do mais espalhado para o menos: é a ordem da urgência real, e também a
     # ordem em que vale gastar rede se a varredura for interrompida.
     for (eco, pacote), onde in sorted(usos.items(), key=lambda kv: -len(kv[1])):
         registro = consultar(eco, pacote, cache)
         if registro.get("erro") or not registro["ultima"]:
+            nao_consultados.append(pacote)
             continue
         m_atual = major(registro["ultima"])
         atrasados = {
@@ -200,11 +212,15 @@ def main() -> int:
     salvar_cache(cache)
 
     achados.sort(key=lambda a: -a["quantos"])
+    # Sem teto apertado: com 55 achados e teto 40, o corte caía no meio dos
+    # empates de `quantos`, e qualquer mudança na ordem de entrada trocava QUEM
+    # ficava de fora. Assinatura instável acorda o dono sem nada ter mudado.
     print(json.dumps({
         "projetos_lidos": resumo["projetos"],
         "pacotes_distintos": len(usos),
         "com_problema": len(achados),
-        "achados": achados[:40],
+        "nao_consultados": sorted(nao_consultados),
+        "achados": achados[:200],
     }, ensure_ascii=False, indent=2))
     return 0
 

@@ -32,6 +32,9 @@ HOME = os.environ.get("HERMES_HOME", "/var/lib/hermes")
 # A última assinatura de vulnerabilidade que deu certo. Existe por um motivo
 # específico, explicado em `linhas_de_vulnerabilidade`.
 CACHE = os.path.join(HOME, "checkpoint", "assinatura_vulneravel.txt")
+# Mesma rede, mesmo motivo, outra metade da assinatura: 40 das 48 linhas são de
+# atraso, e era justamente aí que a queda de rede passava sem proteção.
+CACHE_ATRASO = os.path.join(HOME, "checkpoint", "assinatura_atrasada.txt")
 
 # Só o que interrompe alguém. MODERATE e abaixo vivem na lista de demandas: um
 # aviso por vulnerabilidade média, com vinte projetos, é ruído diário garantido
@@ -59,13 +62,25 @@ def linhas_de_vulnerabilidade() -> list[str]:
     para anunciar que as vulnerabilidades sumiram, que é a pior mensagem falsa
     que este produto poderia mandar. Então: falhou, repete a última boa.
     """
-    dados = rodar("vulneraveis.py", 900)
-    if dados is None or dados.get("erro"):
+    def do_cache() -> list[str]:
         try:
             with open(CACHE, encoding="utf-8") as f:
                 return [linha for linha in f.read().splitlines() if linha]
         except OSError:
             return []
+
+    dados = rodar("vulneraveis.py", 900)
+    if dados is None or dados.get("erro"):
+        return do_cache()
+
+    # Falha PARCIAL e o caso perigoso, e era o que faltava. Quando um lote da
+    # OSV cai, o script devolve sucesso com menos achados: nada indica erro, a
+    # assinatura encolhe, e o agente acorda para dizer que a vulnerabilidade
+    # sumiu. Enquanto houver consulta falhada, o ultimo resultado bom manda e o
+    # cache NAO e reescrito -- sobrescrever com um retrato incompleto apaga a
+    # rede de protecao exatamente no momento em que ela e necessaria.
+    if dados.get("consultas_que_falharam"):
+        return do_cache()
 
     linhas = [
         f"VULN|{a['pacote']}|{a['versao_declarada']}|{a['pior']}|{a['quantos']}"
@@ -80,18 +95,36 @@ def linhas_de_vulnerabilidade() -> list[str]:
     return linhas
 
 
+def cache_de_atraso() -> dict:
+    """Última linha boa por pacote."""
+    try:
+        with open(CACHE_ATRASO, encoding="utf-8") as f:
+            return {linha.split("|")[1]: linha for linha in f.read().splitlines()
+                    if linha.count("|") >= 3}
+    except (OSError, IndexError):
+        return {}
+
+
 def linhas_de_atraso() -> list[str]:
+    """O que está para trás, com o último resultado bom cobrindo o que a rede
+    não deixou consultar.
+
+    Um pacote que não pôde ser consultado é DESCONHECIDO, não resolvido. Se ele
+    simplesmente sumir da assinatura, o monitor entende "mudou" e acorda o dono
+    — e acorda de novo quando a rede voltar. Em 15/09 isso tirou o dono da cama
+    às 02:09 para repetir um alerta que ele já tinha às 20:06.
+    """
     dados = rodar("deps_scan.py", 600)
     if dados is None or dados.get("erro"):
         # Silêncio, não erro: rede fora é temporário, e um erro repetido também
         # é assinatura estável — acordaria o agente uma vez para reclamar de
         # algo que se resolve sozinho.
-        return []
+        return sorted(cache_de_atraso().values())
 
-    linhas = []
+    linhas = {}
     for a in dados.get("achados", []):
         if a["tipo"] == "abandonado":
-            linhas.append(f"ATRAS|{a['pacote']}|abandonado|{a['quantos']}")
+            linhas[a["pacote"]] = f"ATRAS|{a['pacote']}|abandonado|{a['quantos']}"
         else:
             # O salto em majors, não a versão exata: um patch novo do mesmo
             # major não é notícia e não deve acordar ninguém.
@@ -99,8 +132,23 @@ def linhas_de_atraso() -> list[str]:
                 salto = int(a["atual"].split(".")[0]) - int(a["voce_usa"].split(".")[0])
             except (ValueError, IndexError):
                 salto = 1
-            linhas.append(f"ATRAS|{a['pacote']}|major:{salto}|{a['quantos']}")
-    return linhas
+            linhas[a["pacote"]] = f"ATRAS|{a['pacote']}|major:{salto}|{a['quantos']}"
+
+    # Só para quem a rede engoliu. Pacote consultado com sucesso e sem achado
+    # está resolvido de verdade, e sumir da assinatura é a notícia boa que o
+    # dono merece receber.
+    antigas = cache_de_atraso()
+    for pacote in dados.get("nao_consultados", []):
+        if pacote not in linhas and pacote in antigas:
+            linhas[pacote] = antigas[pacote]
+
+    try:
+        os.makedirs(os.path.dirname(CACHE_ATRASO), exist_ok=True)
+        with open(CACHE_ATRASO, "w", encoding="utf-8") as f:
+            f.write("\n".join(sorted(linhas.values())))
+    except OSError:
+        pass
+    return list(linhas.values())
 
 
 def main() -> int:
