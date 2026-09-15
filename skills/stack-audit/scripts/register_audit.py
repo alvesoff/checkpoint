@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Registra a conferência de documentação, sem duplicar. Roda dentro do container.
+"""Registra a vigia de segredo, sem duplicar. Roda dentro do container.
 
 Mesmo padrão do `register_radar.py`: idempotência lida do `jobs.json` — o estado
 do próprio hermes, onde nome é campo — e nunca da saída legível de
@@ -30,15 +30,19 @@ NOME = "checkpoint-segredo"
 INTERVALO = "every 4h"
 
 INSTRUCAO = (
-    "Um segredo novo apareceu em arquivo solto nos projetos do dono. O achado esta no bloco "
-    "MONITOR acima, no formato projeto|segredo|arquivo|tipos. Rode a skill stack-audit para o "
-    "retrato completo e componha UMA mensagem curta, so sobre o que apareceu agora. "
+    "Um segredo apareceu em arquivo solto nos projetos do dono. O achado esta no bloco MONITOR "
+    "acima, no formato projeto|segredo|arquivo|tipos. Rode a skill stack-audit para o retrato "
+    "completo e componha UMA mensagem curta, so sobre o que apareceu agora. "
+    "Se o bloco disser Monitor Baseline, este e o PRIMEIRO retrato: nao ha nada de novo, sao "
+    "segredos que ja estavam ali. Diga quantos sao e qual o mais grave, sem alarme de urgencia. "
+    "Se o bloco vier VAZIO, nao ha segredo nenhum nos projetos: responda NO_REPLY e nao mande nada. "
     "Regras duras desta mensagem: "
     "NUNCA escreva o valor do segredo, nem parte dele, nem 'comeca com' -- diga o arquivo e o tipo. "
     "Diga o que fazer: tirar do arquivo, por em variavel de ambiente, e rotacionar a chave se o "
     "arquivo ja tiver sido enviado para algum lugar. "
     "Se o arquivo nao esta versionado, diga isso: e a boa noticia, e muda a urgencia. "
-    "Uma mensagem so, no maximo 6 linhas, sem markdown."
+    "Uma mensagem so, no maximo 6 linhas, sem markdown. "
+    "Se a mudanca nao merecer interromper alguem, responda NO_REPLY."
 )
 
 

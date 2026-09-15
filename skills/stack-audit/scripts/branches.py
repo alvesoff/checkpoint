@@ -47,14 +47,36 @@ def principal(repo: str) -> str | None:
     return None
 
 
-def projetos() -> list[str]:
-    if os.path.isdir(os.path.join(RAIZ, ".git")):
-        return [RAIZ]
+def _repositorios(raiz: str) -> list[str]:
+    """A descoberta recursiva do scan_projects, importada em vez de recopiada.
+
+    Quatro scripts tinham cada um a sua cópia rasa, que só olhava UM nível
+    abaixo da raiz. Numa instalação com duas ou mais pastas de código — o
+    caminho padrão do instalador — tudo é montado em `/projects/<pasta>/<repo>`,
+    e aí os quatro ficavam cegos. Pior que cegos: o de branches devolvia lista
+    vazia sem erro nenhum, e o agente respondia com confiança que não havia
+    branch esquecida, sem ter olhado. O vigia de segredo fazia o mesmo com uma
+    chave de verdade.
+    """
+    aqui = os.path.dirname(os.path.realpath(__file__))
+    irma = os.path.join(aqui, os.pardir, os.pardir, "where-i-left-off", "scripts")
+    if irma not in sys.path:
+        sys.path.insert(0, irma)
     try:
-        return [e.path for e in sorted(os.scandir(RAIZ), key=lambda x: x.name)
-                if e.is_dir() and os.path.isdir(os.path.join(e.path, ".git"))]
-    except OSError:
-        return []
+        from scan_projects import repositorios
+    except ImportError:
+        # Um nível é melhor que nenhum, se a skill irmã não estiver instalada.
+        if os.path.isdir(os.path.join(raiz, ".git")):
+            return [raiz]
+        try:
+            return [e.path for e in sorted(os.scandir(raiz), key=lambda x: x.name)
+                    if e.is_dir() and os.path.isdir(os.path.join(e.path, ".git"))]
+        except OSError:
+            return []
+    return repositorios(raiz)
+
+def projetos() -> list[str]:
+    return _repositorios(RAIZ)
 
 
 def main() -> int:

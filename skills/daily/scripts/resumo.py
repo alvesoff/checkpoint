@@ -52,14 +52,36 @@ def git(repo: str, *args: str) -> str:
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
-def projetos() -> list[str]:
-    if os.path.isdir(os.path.join(RAIZ, ".git")):
-        return [RAIZ]
+def _repositorios(raiz: str) -> list[str]:
+    """A descoberta recursiva do scan_projects, importada em vez de recopiada.
+
+    Quatro scripts tinham cada um a sua cópia rasa, que só olhava UM nível
+    abaixo da raiz. Numa instalação com duas ou mais pastas de código — o
+    caminho padrão do instalador — tudo é montado em `/projects/<pasta>/<repo>`,
+    e aí os quatro ficavam cegos. Pior que cegos: o de branches devolvia lista
+    vazia sem erro nenhum, e o agente respondia com confiança que não havia
+    branch esquecida, sem ter olhado. O vigia de segredo fazia o mesmo com uma
+    chave de verdade.
+    """
+    aqui = os.path.dirname(os.path.realpath(__file__))
+    irma = os.path.join(aqui, os.pardir, os.pardir, "where-i-left-off", "scripts")
+    if irma not in sys.path:
+        sys.path.insert(0, irma)
     try:
-        return [e.path for e in sorted(os.scandir(RAIZ), key=lambda x: x.name)
-                if e.is_dir() and os.path.isdir(os.path.join(e.path, ".git"))]
-    except OSError:
-        return []
+        from scan_projects import repositorios
+    except ImportError:
+        # Um nível é melhor que nenhum, se a skill irmã não estiver instalada.
+        if os.path.isdir(os.path.join(raiz, ".git")):
+            return [raiz]
+        try:
+            return [e.path for e in sorted(os.scandir(raiz), key=lambda x: x.name)
+                    if e.is_dir() and os.path.isdir(os.path.join(e.path, ".git"))]
+        except OSError:
+            return []
+    return repositorios(raiz)
+
+def projetos() -> list[str]:
+    return _repositorios(RAIZ)
 
 
 def rodar(caminho: str, *args: str) -> dict:
@@ -180,6 +202,13 @@ def manha() -> dict:
     # que sao a ABERTURA da mensagem da manha. O resumo saia falando de horas
     # livres como se nao houvesse nada a priorizar, e ninguem descobria.
     avisos = [d["_falhou"] for d in (cal, lista) if isinstance(d, dict) and d.get("_falhou")]
+    # Sem calendario configurado, `eventos` vem vazio e as duas contas abaixo
+    # saem como se fossem medicao: "0 minuto de reuniao" e "8,0 horas livres".
+    # Numero inventado e pior que numero ausente -- o dono planeja o dia em cima
+    # dele. Entao os dois campos so existem quando houve calendario para ler.
+    sem_agenda = bool(cal.get("erro")) or not cal.get("eventos")
+    if cal.get("erro"):
+        avisos.append(f"agenda: {cal['erro']}")
 
     return {
         "momento": "manha",
@@ -191,11 +220,12 @@ def manha() -> dict:
         **({"partes_que_faltaram": avisos} if avisos else {}),
         "reunioes": [{"titulo": e["titulo"], "inicio": e["inicio"], "minutos": e.get("minutos")}
                      for e in eventos],
-        "minutos_de_reuniao": ocupado,
+        **({} if sem_agenda else {"minutos_de_reuniao": ocupado}),
         # A conta que muda a conversa: sobra tempo para quantas frentes, não
         # para quantas tarefas. Duas frentes num dia de quatro horas de reunião
         # já é otimismo.
-        "horas_livres_estimadas": round(max(JORNADA_MIN - ocupado, 0) / 60, 1),
+        **({} if sem_agenda else
+           {"horas_livres_estimadas": round(max(JORNADA_MIN - ocupado, 0) / 60, 1)}),
         "projetos_com_pendencia": [
             {"projeto": p["projeto"], "pendencia": resumir(p),
              "dias": p.get("ultimo_toque_ha_dias")} for p in parados[:6]

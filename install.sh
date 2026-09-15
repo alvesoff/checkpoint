@@ -194,7 +194,7 @@ docker_sobe_sozinho() {
       ;;
     mac|windows)
       cfg=$(ls "$HOME/Library/Group Containers/group.com.docker/settings-store.json" \
-               "$APPDATA/Docker/settings-store.json" \
+               "${APPDATA:-}/Docker/settings-store.json" \
                "$HOME/AppData/Roaming/Docker/settings-store.json" 2>/dev/null | head -1)
       [ -n "$cfg" ] || return 0   # sem config legivel, nao afirmar nada
       grep -q '"AutoStart"[[:space:]]*:[[:space:]]*true' "$cfg" && return 0 || return 1
@@ -210,7 +210,7 @@ ligar_docker_no_boot() {
       ;;
     mac|windows)
       cfg=$(ls "$HOME/Library/Group Containers/group.com.docker/settings-store.json" \
-               "$APPDATA/Docker/settings-store.json" \
+               "${APPDATA:-}/Docker/settings-store.json" \
                "$HOME/AppData/Roaming/Docker/settings-store.json" 2>/dev/null | head -1)
       [ -n "$cfg" ] || return 1
       "$PY" - "$cfg" <<'PYEOF' || return 1
