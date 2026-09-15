@@ -23,6 +23,7 @@ Sem `base`, ele usa o upstream do branch; sem upstream, o branch principal do re
 | `superficie_publica` | Rota, export, variável de ambiente, migração, dependência nova. **É o que o revisor lê primeiro** |
 | `pontos_a_confirmar` | O que um revisor humano bom perguntaria |
 | `arquivos_nao_salvos` | Trabalho que ainda nem entrou no commit |
+| `arquivos_so_quebra_de_linha` | Arquivo que o `git diff` mostra reescrito de ponta a ponta mas cujo conteúdo é idêntico ignorando espaço — normalização CRLF↔LF, comum em projeto que passa por Windows/WSL. Já saiu de `arquivos`; **avise que é só isso**, não ofereça como parte da entrega de código |
 
 ## A regra que não se quebra
 

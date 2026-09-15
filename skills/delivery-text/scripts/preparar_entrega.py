@@ -198,7 +198,22 @@ def main() -> int:
                 cabecalho = nl + "+++ b/" + novo + nl
                 corpo_diff = "".join("+" + l + nl for l in corpo.splitlines()[:600])
                 diff += cabecalho + corpo_diff
-    relevantes = [a for a in arquivos if not RUIDO.search(a)]
+    # Arquivo que git diff mostra como reescrito de ponta a ponta, mas cujo
+    # conteúdo é idêntico ignorando espaço/quebra de linha: normalização de
+    # CRLF<->LF, sobretudo em projeto que passou por Windows. Sem filtrar isso,
+    # a entrega parece tocar seis arquivos que na verdade não mudaram nada, e
+    # a "superfície pública" detectada nesse diff é ruído puro.
+    so_quebra_de_linha: list[str] = []
+    if diff_branch:
+        com_espaco = set(l for l in git(repo, "diff", "--name-only", f"{base}...HEAD").splitlines() if l.strip())
+        sem_espaco = set(l for l in git(repo, "diff", "--ignore-all-space", "--name-only", f"{base}...HEAD").splitlines() if l.strip())
+        so_quebra_de_linha = sorted(com_espaco - sem_espaco)
+    elif diff_local:
+        com_espaco = set(l for l in git(repo, "diff", "--name-only", "HEAD").splitlines() if l.strip())
+        sem_espaco = set(l for l in git(repo, "diff", "--ignore-all-space", "--name-only", "HEAD").splitlines() if l.strip())
+        so_quebra_de_linha = sorted(com_espaco - sem_espaco)
+
+    relevantes = [a for a in arquivos if not RUIDO.search(a) and a not in so_quebra_de_linha]
 
     print(json.dumps({
         "projeto": os.path.basename(repo.rstrip("/\\")),
@@ -207,7 +222,8 @@ def main() -> int:
         "tem_base": bool(base),
         "commits_alem_da_base": commits,
         "arquivos": relevantes[:60],
-        "arquivos_ignorados_por_ruido": len(arquivos) - len(relevantes),
+        "arquivos_so_quebra_de_linha": so_quebra_de_linha,
+        "arquivos_ignorados_por_ruido": len(arquivos) - len(relevantes) - len(so_quebra_de_linha),
         "arquivos_nao_salvos": len(sujo),
         "superficie_publica": superficie(diff),
         "pontos_a_confirmar": incoerencias(repo, relevantes, diff),
