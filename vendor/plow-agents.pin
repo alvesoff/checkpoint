@@ -1,0 +1,12 @@
+# A CLI de agentes do Plow, pinada.
+#
+# Mesma razão do client.pin ao lado, e com mais peso: esta é a ferramenta que
+# faz o `mint`, ou seja, a que CRIA a credencial do agente. Clonar o HEAD de um
+# repositório de terceiro e executá-lo substitui código não revisado debaixo de
+# quem segura essa credencial, e sem deixar rastro de qual versão rodou.
+#
+# Bumpar isto é uma edição que alguém revisa, e o diff mostra o que mudou.
+#
+# Escape consciente, para quando a CLI mudar e este pin ficar velho antes de
+# alguém atualizá-lo:  PLOW_AGENTS_REF=main ./install.sh
+sha=8ce907e220ab67018d6857e8054a41eed4ecd279

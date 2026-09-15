@@ -210,14 +210,36 @@ else
 fi
 cd "$DESTINO"
 
-[ -d tools/plow-agents ] || git clone -q -c core.autocrlf=false https://github.com/plow-pbc/plow-agents.git tools/plow-agents
+# A CLI do Plow e executada aqui e e ela que faz o `mint` -- clonar o HEAD de
+# um repositorio de terceiro e rodar o que vier e substituir codigo nao revisado
+# debaixo de quem segura a credencial. Mesmo padrao do vendor/client.pin.
+PLOW_SHA=$([ -f vendor/plow-agents.pin ] && sed -n 's/^sha=//p' vendor/plow-agents.pin | head -1)
+PLOW_REF="${PLOW_AGENTS_REF:-$PLOW_SHA}"
+if [ ! -d tools/plow-agents ]; then
+  git clone -q -c core.autocrlf=false https://github.com/plow-pbc/plow-agents.git tools/plow-agents \
+    || erro "Could not clone the Plow CLI." "Nao consegui clonar a CLI do Plow."
+fi
+if [ -n "$PLOW_REF" ]; then
+  git -C tools/plow-agents fetch -q origin "$PLOW_REF" 2>/dev/null || git -C tools/plow-agents fetch -q origin 2>/dev/null || true
+  if ! git -C tools/plow-agents checkout -q "$PLOW_REF" 2>/dev/null; then
+    # Pin velho nao pode virar falha obscura na maquina de quem instala: diga o
+    # que houve e siga no que veio, que e melhor do que parar aqui.
+    msg "Pinned Plow CLI revision not found; using whatever the clone has. Update vendor/plow-agents.pin." \
+        "A revisao pinada da CLI do Plow nao existe mais; seguindo com a do clone. Atualize vendor/plow-agents.pin."
+  fi
+fi
 
 # Sem isto a CLI do Plow nao consegue gravar o token no Windows, e a instalacao
 # morre depois da ativacao por iMessage -- com a mensagem ja mandada e o codigo
 # ja gasto. Roda toda vez porque o clone pode ser de agora e um git pull na CLI
 # desfaz a edicao; aplicar duas vezes nao faz nada.
 if [ -f tools/patch-plow-windows.py ]; then
-  $PY tools/patch-plow-windows.py tools/plow-agents/bin/plow-agents
+  # So no Windows, e so ai a falha importa: em Mac e Linux a CLI grava o token
+  # sem ajuda. Falhar calado aqui fazia a instalacao morrer depois da ativacao
+  # por iMessage, com o codigo ja gasto -- o pior momento possivel.
+  if ! $PY tools/patch-plow-windows.py tools/plow-agents/bin/plow-agents; then
+    [ "$SO" = windows ] && erro       "Could not patch the Plow CLI for Windows; it would fail to save the token after you already spent the activation code."       "Nao consegui ajustar a CLI do Plow para Windows; ela falharia ao salvar o token depois de voce ja ter gasto o codigo de ativacao."
+  fi
 else
   msg "Local copy is older than this installer; the Plow CLI may fail to save the token on Windows."       "A cópia local é mais antiga que este instalador; no Windows a CLI do Plow pode falhar ao salvar o token."
 fi
