@@ -136,7 +136,7 @@ function Invoke-CheckpointInstall {
 
     $r = Read-Host (T 'Install it now with winget? Large download, and Windows will ask for permission. [Y/n]' `
                       'Instalar agora pelo winget? É um download grande e o Windows vai pedir permissão. [S/n]')
-    if ($r -match '^(n|no|nao)$') {
+    if ($r -match '^(n|no|nao|não)$') {
       Write-Host (T 'Nothing was installed.' 'Nada foi instalado.')
       return
     }
@@ -194,6 +194,42 @@ function Invoke-CheckpointInstall {
 
     Write-Host (T 'Docker is up.' 'Docker no ar.')
     Write-Host ''
+  }
+
+  # ----------------------------------------------------------- Python
+  #
+  # O install.sh exige Python 3.9+ para rodar a CLI do Plow, e ate aqui este
+  # script resolvia git e Docker mas nao o Python: a pessoa passava por dois
+  # downloads grandes e so entao ouvia "Python 3.9+ not found", no bash, sem
+  # oferta de conserto. No Windows ainda ha a armadilha do alias da Microsoft
+  # Store, que responde ao nome `python` e nao e um Python.
+  $temPython = $false
+  foreach ($nome in @('python', 'python3', 'py')) {
+    $exe = Get-Command $nome -ErrorAction SilentlyContinue
+    if (-not $exe) { continue }
+    # O alias da Store e um stub de 0 byte em WindowsApps; chamar abre a loja.
+    if ($exe.Source -and $exe.Source -like '*\WindowsApps\*') { continue }
+    & $exe.Source -c 'import sys; sys.exit(0 if sys.version_info>=(3,9) else 1)' 2>$null
+    if ($LASTEXITCODE -eq 0) { $temPython = $true; break }
+  }
+  if (-not $temPython) {
+    Write-Host (T 'Python 3.9+ was not found, and the Plow CLI needs it.' `
+                  'Python 3.9+ nao foi encontrado, e a CLI do Plow precisa dele.')
+    if (Get-Command winget.exe -ErrorAction SilentlyContinue) {
+      $r = Read-Host (T 'Install it now with winget? [Y/n]' 'Instalar agora pelo winget? [S/n]')
+      if ($r -match '^(n|no|nao|não)$') {
+        Write-Host (T 'Nothing was installed.' 'Nada foi instalado.')
+        return
+      }
+      winget.exe install --id Python.Python.3.12 -e --source winget --accept-package-agreements --accept-source-agreements
+      # O PATH desta sessao nao enxerga o que o winget acabou de instalar.
+      $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' +
+                  [Environment]::GetEnvironmentVariable('Path','User')
+    } else {
+      Write-Host (T 'Install Python 3.9+ from python.org and run this again.' `
+                    'Instale o Python 3.9+ pelo python.org e rode isto de novo.')
+      return
+    }
   }
 
   # ----------------------------------------------------------- baixar e rodar

@@ -120,9 +120,48 @@ command -v docker >/dev/null 2>&1 || {
   "Docker not found. Install Docker Desktop (or the docker engine) and run this again." \
   "Docker não encontrado. Instale o Docker Desktop (ou o engine) e rode de novo."
 
-"$DOCKER" info >/dev/null 2>&1 || erro \
-  "Docker is installed but not running. Start it and run this again." \
-  "O Docker está instalado mas não está rodando. Abra ele e rode de novo."
+case "$(uname -s 2>/dev/null || echo desconhecido)" in
+  Darwin)                SO=mac;;
+  Linux)                 SO=linux;;
+  MINGW*|MSYS*|CYGWIN*)  SO=windows;;
+  *)                     SO=outro;;
+esac
+
+# `docker info` falha por dois motivos muito diferentes, e ate aqui os dois
+# recebiam "abra o Docker": no Linux, quem esta fora do grupo docker leva
+# "permission denied" com o daemon rodando perfeitamente, e abrir coisa
+# nenhuma resolve. WSL se declara Linux, que e o certo.
+if ! INFO_ERRO=$("$DOCKER" info 2>&1 >/dev/null); then
+  case "$INFO_ERRO" in
+    *"permission denied"*|*"dial unix"*)
+      erro "Docker is running, but your user cannot reach it. Run:  sudo usermod -aG docker \$USER  then log out and back in (or run: newgrp docker)." \
+           "O Docker esta rodando, mas seu usuario nao alcanca ele. Rode:  sudo usermod -aG docker \$USER  e faca logout/login (ou rode: newgrp docker)."
+      ;;
+  esac
+  if [ "$SO" = mac ] && [ -d /Applications/Docker.app ]; then
+    # No Windows o instalador ja abria e esperava o Docker sozinho; no Mac ele
+    # so reclamava e morria. Mesma cortesia nos dois.
+    msg "Docker Desktop is installed but not running. Starting it..." \
+        "O Docker Desktop esta instalado mas nao esta rodando. Abrindo..."
+    open -a Docker >/dev/null 2>&1 || true
+    i=0
+    while [ "$i" -lt 120 ]; do
+      "$DOCKER" info >/dev/null 2>&1 && break
+      i=$((i + 1))
+      sleep 1
+    done
+  fi
+  "$DOCKER" info >/dev/null 2>&1 || {
+    case "$SO" in
+      mac)   erro "Docker is installed but not running. Open Docker Desktop and run this again." \
+                  "O Docker esta instalado mas nao esta rodando. Abra o Docker Desktop e rode de novo.";;
+      linux) erro "The Docker daemon is not running. Start it:  sudo systemctl start docker" \
+                  "O daemon do Docker nao esta rodando. Ligue com:  sudo systemctl start docker";;
+      *)     erro "Docker is installed but not running. Start it and run this again." \
+                  "O Docker esta instalado mas nao esta rodando. Abra ele e rode de novo.";;
+    esac
+  }
+fi
 
 command -v git >/dev/null 2>&1 || erro "git not found." "git não encontrado."
 
@@ -385,9 +424,38 @@ fi
 
 # ---------------------------------------------------------------- fuso
 
+# No Windows nao existe /etc/localtime, entao ate aqui o fuso caia direto no
+# chute por idioma -- e quem instalasse em ingles recebia UTC com SIM como
+# resposta padrao. Um agente que fala "sua reuniao e as 12h" com o fuso errado
+# erra todo horario, inclusive o do cutucao automatico.
 FUSO=""
 if [ -L /etc/localtime ]; then
   FUSO=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')
+fi
+[ -n "$FUSO" ] || FUSO="${TZ:-}"
+if [ -z "$FUSO" ] && [ "$SO" = windows ]; then
+  # .NET 6+ converte o nome do fuso do Windows ("E. South America Standard
+  # Time") para o nome IANA que o container entende.
+  for PS in pwsh powershell.exe powershell; do
+    command -v "$PS" >/dev/null 2>&1 || continue
+    FUSO=$("$PS" -NoProfile -Command '
+      $i = $null
+      if ([System.TimeZoneInfo]::TryConvertWindowsIdToIanaId([System.TimeZoneInfo]::Local.Id, [ref]$i)) { $i }
+    ' 2>/dev/null | tr -d '\r' | head -1)
+    [ -n "$FUSO" ] && break
+  done
+fi
+if [ -z "$FUSO" ]; then
+  # Ultimo recurso antes do chute: o deslocamento de agora. Perde horario de
+  # verao, mas erra por uma hora em vez de errar por tres.
+  OFF=$(date +%z 2>/dev/null)
+  case "$OFF" in
+    [+-][0-9][0-9]00)
+      H=$(printf '%s' "$OFF" | cut -c2-3 | sed 's/^0//')
+      # Etc/GMT tem o sinal invertido de proposito: Etc/GMT+3 e UTC-3.
+      [ "$(printf '%s' "$OFF" | cut -c1)" = "-" ] && FUSO="Etc/GMT+${H:-0}" || FUSO="Etc/GMT-${H:-0}"
+      ;;
+  esac
 fi
 [ -n "$FUSO" ] || FUSO=$([ "$IDIOMA" = pt ] && echo "America/Sao_Paulo" || echo "UTC")
 confirmar "Timezone $FUSO — is that right?" "Fuso horário $FUSO — está certo?" s \
