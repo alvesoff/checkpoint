@@ -82,3 +82,22 @@ Das mescladas, fale pelo número e só se perguntarem, ou junto de outra coisa n
 **Nunca ofereça apagar.** A pasta é somente leitura e você não roda `git branch -d` de ninguém; e
 mesmo que rodasse, decidir o que fazer com branch é de quem escreveu o código. Você diz o que há;
 ele decide.
+
+## O vigia de segredo, que acorda sozinho
+
+`audit_digest.py` é o `--monitor-script` desta skill: imprime uma assinatura estável dos segredos em
+arquivo solto — `projeto|segredo|arquivo|tipos`, **nunca o valor** — e só acorda o agente quando ela
+muda. De 4 em 4 horas, não de 12 como o vigia de documentação: documento desatualizado espera,
+credencial exposta não.
+
+Só segredo entra na assinatura. Dockerfile como root, imagem base velha e falta de healthcheck são
+verdadeiros e importantes, e **não mudam sozinhos** — viram demanda na lista, não interrupção. Um
+monitor que acorda o agente para repetir o que disse ontem é um monitor que a pessoa desliga.
+
+Registre uma vez, quando o dono pedir para ser avisado:
+
+```sh
+python3 /opt/hermes/skills/stack-audit/scripts/register_audit.py
+```
+
+No boot ele já é registrado sozinho, junto dos outros quatro.
