@@ -16,6 +16,7 @@ demoraria o suficiente para estourar o turno do agente.
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import os
 import re
@@ -130,8 +131,12 @@ def consultar(eco: str, pacote: str, cache: dict) -> dict:
     chave = f"{eco}:{pacote}"
     if chave in cache:
         return cache[chave]
+    # `/latest` em vez do pacote inteiro. O documento completo do npm traz TODAS
+    # as versões já publicadas: o `next` sozinho são 31 MB, contra 3 KB do
+    # `/latest` — dez mil vezes menos, pelos mesmos dois campos que lemos. Era
+    # daí que vinham os 106 segundos da varredura.
     url = (
-        f"https://registry.npmjs.org/{urllib.parse.quote(pacote, safe='@/')}"
+        f"https://registry.npmjs.org/{urllib.parse.quote(pacote, safe='@/')}/latest"
         if eco == "npm"
         else f"https://pypi.org/pypi/{urllib.parse.quote(pacote)}/json"
     )
@@ -140,9 +145,10 @@ def consultar(eco: str, pacote: str, cache: dict) -> dict:
         with urllib.request.urlopen(url, timeout=15) as r:
             dados = json.load(r)
         if eco == "npm":
-            registro["ultima"] = dados.get("dist-tags", {}).get("latest", "")
-            versao = dados.get("versions", {}).get(registro["ultima"], {})
-            registro["abandonado"] = str(versao.get("deprecated") or "")[:200]
+            # `/latest` já É o manifesto da última versão: `version` e
+            # `deprecated` vêm na raiz, com a mesma semântica de antes.
+            registro["ultima"] = dados.get("version", "")
+            registro["abandonado"] = str(dados.get("deprecated") or "")[:200]
         else:
             info = dados.get("info", {})
             registro["ultima"] = info.get("version", "")
@@ -184,6 +190,33 @@ def main() -> int:
         return 1
 
     cache = carregar_cache()
+
+    # Aquece o cache em paralelo antes do laço. São ~150 consultas de rede, e em
+    # fila indiana elas custavam 106 segundos — dentro de um `demandas.py` que
+    # levava 222 no total. Um assistente de conversa que demora quatro minutos
+    # para responder "o que eu tenho pra fazer" não é usado duas vezes.
+    #
+    # O laço abaixo continua idêntico e sequencial: ele lê do cache já quente,
+    # então a ORDEM do resultado não depende de quem respondeu primeiro. Ordem
+    # instável aqui viraria assinatura instável no monitor, que é o defeito que
+    # acordou o dono às 2h da manhã.
+    pendentes = [(eco, pacote) for (eco, pacote) in usos
+                 if f"{eco}:{pacote}" not in cache]
+    if pendentes:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=12) as piscina:
+            futuros = {piscina.submit(consultar, eco, pacote, {}): (eco, pacote)
+                       for eco, pacote in pendentes}
+            for futuro in concurrent.futures.as_completed(futuros):
+                eco, pacote = futuros[futuro]
+                try:
+                    registro = futuro.result()
+                except Exception:
+                    continue
+                # Falha continua fora do cache, pelo mesmo motivo de sempre:
+                # guardá-la faz o pacote sumir da assinatura por 24 horas.
+                if not registro.get("erro"):
+                    cache[f"{eco}:{pacote}"] = registro
+
     achados = []
     # Quem a rede não deixou consultar. Some da lista de achados, e por isso
     # quem monta a assinatura precisa saber que ele é DESCONHECIDO, não

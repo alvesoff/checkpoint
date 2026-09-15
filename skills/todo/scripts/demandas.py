@@ -43,6 +43,7 @@ eu não faria se ninguém me lembrasse?*
 from __future__ import annotations
 
 import datetime
+import concurrent.futures
 import json
 import os
 import re
@@ -85,21 +86,51 @@ def salvar(dados: dict) -> None:
     os.replace(tmp, ARQUIVO)
 
 
+_MEMORIA: dict = {}
+
+
 def rodar(caminho: str, *args: str) -> dict:
     """Chama um script irmão e devolve o JSON dele, ou {} se falhar.
 
     Falha de um detector não pode derrubar a lista inteira: uma lista que some
     quando a rede cai é pior que uma lista incompleta.
+
+    Memoriza por (caminho, args) porque `adiantar()` dispara os mesmos detectores
+    em paralelo antes: aqui a chamada já encontra o resultado pronto.
     """
+    chave = (caminho, args)
+    if chave in _MEMORIA:
+        return _MEMORIA[chave]
     try:
         r = subprocess.run(
             [sys.executable, caminho, *args],
             capture_output=True, text=True, timeout=600,
             encoding="utf-8", errors="replace",
         )
-        return json.loads(r.stdout)
+        saida = json.loads(r.stdout)
     except (OSError, subprocess.SubprocessError, ValueError):
-        return {}
+        saida = {}
+    _MEMORIA[chave] = saida
+    return saida
+
+
+def adiantar(caminhos: list) -> None:
+    """Roda os detectores ao mesmo tempo, em vez de um depois do outro.
+
+    Eles são independentes e quase todo o tempo deles é rede ou disco parado
+    esperando. Em fila davam 222 segundos; o maior sozinho dá 106. Quatro
+    minutos para responder "o que eu tenho pra fazer" é o tipo de lentidão que
+    faz a pessoa parar de perguntar — e uma lista que ninguém consulta não
+    prioriza nada.
+
+    Não altera resultado: cada um continua sendo lido pelo mesmo `rodar()`, na
+    mesma ordem de sempre, só que já pronto.
+    """
+    faltam = [c for c in caminhos if (c, ()) not in _MEMORIA]
+    if not faltam:
+        return
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(faltam)) as piscina:
+        list(piscina.map(rodar, faltam))
 
 
 # A única urgência que nasce do próprio achado é o dano que **já está
@@ -200,6 +231,18 @@ def quadrante(importancia: int, urgencia: int) -> str:
 def derivadas() -> dict[str, dict]:
     """As demandas que o estado dos projetos justifica agora."""
     achadas: dict[str, dict] = {}
+
+    # Os seis detectores ao mesmo tempo, antes de qualquer leitura. Nenhum
+    # depende do resultado do outro, e o que domina o tempo deles e espera de
+    # rede e de disco.
+    adiantar([
+        f"{SKILLS}/where-i-left-off/scripts/scan_projects.py",
+        f"{SKILLS}/dependency-radar/scripts/deps_scan.py",
+        f"{SKILLS}/dependency-radar/scripts/vulneraveis.py",
+        f"{SKILLS}/stack-audit/scripts/auditar.py",
+        f"{SKILLS}/stack-audit/scripts/branches.py",
+        f"{SKILLS}/doc-check/scripts/conferir_docs.py",
+    ])
 
     projetos = rodar(f"{SKILLS}/where-i-left-off/scripts/scan_projects.py")
     for p in projetos.get("projetos", []):
