@@ -1,6 +1,6 @@
 ---
 name: doc-check
-description: Onde a documentação do projeto já não bate com o código — README que manda rodar comando que não existe, link que aponta para arquivo apagado, variável que o código exige e nenhum documento menciona. Use quando perguntarem sobre documentação, README, se as instruções estão certas, ou por que o projeto não sobe na máquina de outra pessoa.
+description: Documentacao que nao bate com o codigo, e escrever doc
 ---
 
 # Conferência de documentação

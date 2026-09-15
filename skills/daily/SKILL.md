@@ -1,6 +1,6 @@
 ---
 name: daily
-description: O resumo do dia — de manhã, quanto tempo sobra depois das reuniões e o que dá para atacar; à noite, o que foi commitado, o que continua fora do git e em que estado está o projeto da primeira reunião de amanhã. Use quando perguntarem sobre o dia, o que fazer hoje, como foi o dia, ou o que tem amanhã.
+description: O resumo da manha e o fechamento da noite
 ---
 
 # O resumo do dia

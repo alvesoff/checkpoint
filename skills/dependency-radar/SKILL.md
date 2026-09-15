@@ -1,6 +1,6 @@
 ---
 name: dependency-radar
-description: O que vai quebrar antes de quebrar. Mapeia todo pacote usado em todos os projetos, cruza com os registros npm e PyPI, e diz em quantos projetos cada problema atinge. Use quando perguntarem sobre dependências, atualização, versão, o que está desatualizado ou o que pode quebrar.
+description: Dependencia atrasada e vulnerabilidade conhecida
 ---
 
 # Radar de dependências

@@ -1,6 +1,6 @@
 ---
 name: todo
-description: A lista de demandas do dono — o que está pendente nos projetos dele. Nasce sozinha do estado real (trabalho não salvo, dependência que vai quebrar, segredo solto, container como root) e aceita demandas digitadas por ele. USE SEMPRE que a pergunta envolver: pendências, tarefas, demandas, to-do, lista, o que tenho para fazer, o que falta, no que devo mexer, prioridade, anota isso, me lembra de, já fiz, deixa pra depois, adia, esquece isso.
+description: A lista de demandas: o importante e o urgente
 ---
 
 # Demandas

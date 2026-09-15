@@ -1,6 +1,6 @@
 ---
 name: where-i-left-off
-description: Reconstrói onde o trabalho parou em cada projeto lendo os artefatos do repositório — branch, último commit, alterações não salvas, commits não enviados. Use quando perguntarem onde pararam, o que está travado, o que está em voo, ou ao preparar um cutucão sobre trabalho parado.
+description: Onde cada projeto parou e o que ficou nao salvo
 ---
 
 # Onde eu parei

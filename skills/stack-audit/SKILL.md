@@ -1,6 +1,6 @@
 ---
 name: stack-audit
-description: Onde os próprios projetos do dono se contradizem — Dockerfile sem healthcheck, container rodando como root, tag latest, imagens base divergentes — e segredo em arquivo que o git não está versionando. Use quando perguntarem sobre padrão, consistência, segurança dos containers, ou o que está errado nos projetos.
+description: Segredo solto, container como root, branch que sobrou
 ---
 
 # Auditoria do seu padrão

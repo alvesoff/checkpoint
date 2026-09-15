@@ -1,6 +1,6 @@
 ---
 name: delivery-text
-description: Escreve o texto que falta para um trabalho ser entregue — mensagem de commit, descrição de PR, resumo do que mudou. Lê o diff real e os commits do branch. USE SEMPRE que pedirem: mensagem de commit, descrição de PR, o que escrever no pull request, resumo das mudanças, changelog, o que mudei nesse projeto, como descrevo essa entrega.
+description: Texto de commit e de PR, e revisao antes de subir
 ---
 
 # Texto de entrega

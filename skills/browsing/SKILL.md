@@ -1,6 +1,6 @@
 ---
 name: browsing
-description: Abrir páginas da web — changelog, documentação, guia de migração, status de serviço. Escolhe sozinho entre o Mac do dono (Plow Latch, com as sessões já logadas) e o navegador do próprio container. Use sempre que precisar ler algo que está na internet.
+description: Abre paginas na web, pelo Mac do dono quando existe
 ---
 
 # Navegar

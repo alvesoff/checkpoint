@@ -1,6 +1,6 @@
 ---
 name: agenda
-description: Agenda e disponibilidade do dono. Lê os compromissos pelo endereço iCal do calendário (Google, Outlook/M365 ou Apple) e propõe blocos de trabalho em horários livres como link de um toque. USE SEMPRE que a pergunta envolver: agenda, calendário, compromisso, reunião, horário, horários disponíveis, tempo livre, estou livre, tenho tempo, o que tenho hoje, cabe no meu dia, quando posso, sobra tempo, quanto tempo tenho, marcar, bloquear tempo, reservar horário. Também use antes de dizer se um plano de trabalho é realista.
+description: Le o calendario e propoe bloco de trabalho
 ---
 
 # Agenda
