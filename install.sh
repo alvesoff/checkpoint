@@ -728,6 +728,7 @@ fi
 cat > .env <<EOF
 CODE_DIR=$CODE_DIR
 CODE_TARGET=${CODE_TARGET:-/projects}
+CHECKPOINT_REV=$(git -C "$DESTINO" rev-parse HEAD 2>/dev/null || echo desconhecido)
 TZ=$FUSO
 AGENT_ID=checkpoint
 EOF

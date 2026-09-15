@@ -16,6 +16,14 @@ FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-4747960eaa8a44ac24424bf0cc6c
 COPY runtime/persona.md /opt/hermes/plow-seed/persona.md
 RUN chmod 0644 /opt/hermes/plow-seed/persona.md
 
+# Em que commit esta imagem foi construida. Serve para o agente saber se esta
+# atrasado em relacao ao repositorio publico -- ele nao tem git nem acesso ao
+# Docker do host, entao a unica forma de saber a propria versao e esta.
+# Ausente (build manual sem o .env do instalador) vira "desconhecido", e o
+# verificador diz isso em vez de inventar uma resposta.
+ARG CHECKPOINT_REV=desconhecido
+RUN mkdir -p /opt/checkpoint  && printf '%s' "$CHECKPOINT_REV" > /opt/checkpoint/rev  && chmod 0644 /opt/checkpoint/rev
+
 # O reporter do Agent Index — o ÚNICO requisito obrigatório do hackathon.
 #
 # Buscado no build em vez de commitado porque plow-pbc/agent-index-client é dono

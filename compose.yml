@@ -1,6 +1,11 @@
 services:
   agent:
-    build: .
+    build:
+      context: .
+      args:
+        # Preenchido pelo install.sh. Sem ele a imagem nao sabe a propria
+        # versao e o verificador de atualizacao diz isso, em vez de mentir.
+        CHECKPOINT_REV: "${CHECKPOINT_REV:-desconhecido}"
     environment:
       # O id registrado no Agent Index. Sem ele o reporter fica parado de
       # propósito, em vez de adivinhar um nome. Preenchido quando a ideia

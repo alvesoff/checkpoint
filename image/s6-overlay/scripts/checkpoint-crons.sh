@@ -24,6 +24,7 @@ for registro in \
   /opt/hermes/skills/dependency-radar/scripts/register_radar.py \
   /opt/hermes/skills/doc-check/scripts/register_docs.py \
   /opt/hermes/skills/stack-audit/scripts/register_audit.py \
+  /opt/hermes/skills/self-update/scripts/register_update.py \
   /opt/hermes/skills/daily/scripts/register_daily.py
 do
   [ -f "$registro" ] || continue
