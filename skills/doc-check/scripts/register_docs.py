@@ -89,10 +89,26 @@ def publicar_scripts() -> None:
 def main() -> int:
     publicar_scripts()
 
+    # Registrado uma vez, congelado para sempre: ate aqui bastava o nome existir
+    # para o registrador sair, sem olhar o que estava registrado. Entao toda
+    # melhoria de instrucao, horario ou destino publicada neste repositorio
+    # nunca alcancava quem ja tinha o job -- a base instalada parava no dia da
+    # instalacao e ninguem percebia, porque o cron continuava rodando.
     for job in jobs_registrados():
-        if job.get("name") == NOME:
+        if job.get("name") != NOME:
+            continue
+        # So a instrucao: o intervalo praticamente nao muda, e comparar o
+        # formato que o runtime usa para exibi-lo ("every 60m") seria acoplar
+        # este script a um detalhe de apresentacao dele.
+        if (job.get("prompt") or "").strip() == INSTRUCAO.strip():
             print(f"já registrado ({job.get('id')}) — nada a fazer")
             return 0
+        # Recriar, e nao editar: `cron edit` nao alcanca todos os campos, e um job
+        # meio atualizado e pior que um desatualizado.
+        print(f"definicao mudou — recriando {NOME} ({job.get('id')})")
+        subprocess.run([HERMES, "cron", "remove", str(job.get("id"))],
+                       capture_output=True, text=True)
+        break
 
     resultado = subprocess.run(
         [

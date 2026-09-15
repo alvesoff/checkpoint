@@ -93,14 +93,25 @@ def publicar_scripts() -> None:
 
 def main() -> int:
     publicar_scripts()
-    existentes = {j.get("name") for j in jobs_registrados()}
+    # Por nome E por instrucao. Ate aqui bastava o nome existir para pular, e
+    # entao toda melhoria de texto publicada neste repositorio nunca alcancava
+    # quem ja tinha a rotina: a base instalada congelava no dia da instalacao,
+    # sem sintoma nenhum, porque o cron continuava rodando com o texto velho.
+    existentes = {j.get("name"): j for j in jobs_registrados()}
     alvo = destino()
     falhou = False
 
     for rotina in ROTINAS:
-        if rotina["nome"] in existentes:
-            print(f"{rotina['nome']}: já registrado — nada a fazer")
-            continue
+        atual = existentes.get(rotina["nome"])
+        if atual is not None:
+            if (atual.get("prompt") or "").strip() == rotina["instrucao"].strip():
+                print(f"{rotina['nome']}: já registrado — nada a fazer")
+                continue
+            # Recriar, e nao editar: `cron edit` nao alcanca todos os campos, e
+            # uma rotina meio atualizada e pior que uma desatualizada.
+            print(f"{rotina['nome']}: instrucao mudou — recriando")
+            subprocess.run([HERMES, "cron", "remove", str(atual.get("id"))],
+                           capture_output=True, text=True)
         r = subprocess.run(
             [HERMES, "cron", "create", rotina["quando"], rotina["instrucao"],
              "--name", rotina["nome"],
