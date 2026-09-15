@@ -62,9 +62,15 @@ Para o achado mais espalhado, faça os três passos:
 
 ## O aviso automático
 
-O `deps_digest.py` é o `--monitor-script` deste radar: imprime uma assinatura estável do que está
-atrasado e só acorda o agente quando ela muda — ou seja, quando um pacote **passa** a ficar para
-trás, ou passa a ser abandonado. Enquanto nada muda, silêncio e zero token.
+O `deps_digest.py` é o `--monitor-script` deste radar: imprime uma assinatura estável e só acorda o
+agente quando ela muda. São **três** gatilhos, e o terceiro é o que mais importa:
+
+- um pacote **passa** a ficar para trás;
+- um pacote passa a ser abandonado;
+- **uma vulnerabilidade grave passa a existir num pacote que a pessoa usa** — este não depende de
+  ninguém publicar versão nova, e é o único que pode aparecer sem que nada no projeto tenha mudado.
+
+Enquanto nada muda, silêncio e zero token.
 
 Registre uma vez, quando o dono pedir para ser avisado:
 

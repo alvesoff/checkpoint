@@ -49,6 +49,12 @@ def main() -> int:
             linhas.append(f"{projeto}|cmd|{c}")
         for v in r.get("variaveis_exigidas_sem_documentacao", []):
             linhas.append(f"{projeto}|env|{v}")
+        # O quarto achado que o conferir_docs emite. Sem esta linha ele existia,
+        # era medido e nunca acordava ninguem: documento mandando rodar um
+        # comando que so existe em outro workspace nao entrava na assinatura, e
+        # o monitor so compara assinaturas.
+        for c in r.get("comandos_fora_do_lugar", []):
+            linhas.append(f"{projeto}|fora|{c}")
 
     for linha in sorted(linhas):
         print(linha)
