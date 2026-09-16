@@ -257,11 +257,16 @@ function Invoke-CheckpointInstall {
   & $bash $caminhoPosix
   $codigo = $LASTEXITCODE
 
-  Remove-Item $destino -ErrorAction SilentlyContinue
-
-  if ($codigo -ne 0) {
+  if ($codigo -eq 0) {
+    Remove-Item $destino -ErrorAction SilentlyContinue
+  } else {
+    # O arquivo fica. Apagar o script que acabou de falhar tira da pessoa a
+    # unica coisa que permitiria repetir a falha com a saida na tela — e quem
+    # relata o problema so tem "parou com codigo N" para contar.
     Write-Host ''
     Write-Host (T "The installer stopped with code $codigo." "O instalador parou com código $codigo.")
+    Write-Host (T "To see the full output, run it directly:" "Para ver a saída inteira, rode ele direto:")
+    Write-Host "  & '$bash' '$caminhoPosix'"
   }
 }
 

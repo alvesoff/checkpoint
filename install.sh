@@ -54,6 +54,27 @@ msg() { # msg <texto en> <texto pt>
   if [ "$IDIOMA" = pt ]; then printf '%s\n' "$2"; else printf '%s\n' "$1"; fi
 }
 
+# Em que passo o script estava quando morreu.
+#
+# São 800 linhas sob `set -eu` rodando na máquina de outra pessoa: qualquer
+# comando que devolva não-zero encerra tudo sem dizer nada, e o que chega para
+# quem instalou é "parou com código 1". Aconteceu num Windows em 16/09 e custou
+# três execuções para localizar a linha — com o instalador dizendo onde parou,
+# teria custado uma.
+#
+# EXIT em vez de ERR porque ERR não existe em `sh` POSIX: no Linux o script
+# chega por `curl | sh`, que na Debian e na Ubuntu é o dash. Testado nos três.
+ETAPA=""
+onde_parou() {
+  codigo=$?
+  [ "$codigo" -eq 0 ] && return 0
+  # `erro` já explicou o motivo em português claro; não repetir por cima dele.
+  [ -n "$ETAPA" ] || return 0
+  msg "Stopped while: $ETAPA (exit $codigo)" \
+      "Parou em: $ETAPA (código $codigo)" >&2
+}
+trap onde_parou EXIT
+
 # Pergunta sim/não. O padrão vai em maiúscula e é o que acontece se a pessoa
 # só apertar Enter.
 confirmar() { # confirmar <pergunta en> <pergunta pt> <padrao s|n>
@@ -97,9 +118,11 @@ normalizar_caminho() {
   esac
 }
 
-erro() { msg "$1" "$2" >&2; exit 1; }
+erro() { ETAPA=""; msg "$1" "$2" >&2; exit 1; }
 
 # ---------------------------------------------------------------- pré-requisitos
+
+ETAPA="conferindo Docker, git e Python"
 
 msg "Checkpoint — installer" "Checkpoint — instalador"
 echo
@@ -256,6 +279,7 @@ msg "Docker, git and Python: found." "Docker, git e Python: encontrados."
 
 # ------------------------------------------------- iniciar junto com a maquina
 
+ETAPA="configurando o Docker para iniciar sozinho"
 #
 # O container tem `restart: unless-stopped`, entao ele volta sozinho assim que o
 # Docker sobe. Mas se o Docker nao sobe com a maquina, o agente fica morto e em
@@ -366,6 +390,7 @@ fi
 
 # -c core.autocrlf=false não é necessário para este repo (o .gitattributes fixa
 # LF), mas é para o plow-agents, que não tem um.
+ETAPA="baixando o Checkpoint"
 if [ ! -d "$DESTINO/.git" ]; then
   # O git já disse o motivo logo acima — não repetir um palpite por cima dele.
   # A mensagem antiga chutava "confira a conexão" para uma falha que costuma ser
@@ -386,6 +411,7 @@ else
   #
   # O erro do git é mostrado. Ia para /dev/null, e aí nem quem instalou nem eu
   # conseguíamos saber por que a atualização falhou.
+  ETAPA="atualizando a cópia local"
   if ! SAIDA_GIT=$(git -C "$DESTINO" fetch -q origin 2>&1); then
     msg "Could not reach GitHub to update the copy in $DESTINO:" \
         "Não consegui falar com o GitHub para atualizar a cópia em $DESTINO:"
@@ -498,6 +524,8 @@ numero_da_linha() {
 }
 
 # ---------------------------------------------------------------- pastas de código
+
+ETAPA="escolhendo as pastas de projeto"
 
 # Procura todo lugar onde a pessoa possa guardar projeto e conta os repositórios
 # git de cada um. Monta TODOS os que tiverem repositório, não só o maior: quem
@@ -672,6 +700,8 @@ fi
 
 # ---------------------------------------------------------------- fuso
 
+ETAPA="descobrindo o fuso horário"
+
 # No Windows nao existe /etc/localtime, entao ate aqui o fuso caia direto no
 # chute por idioma -- e quem instalasse em ingles recebia UTC com SIM como
 # resposta padrao. Um agente que fala "sua reuniao e as 12h" com o fuso errado
@@ -710,6 +740,8 @@ confirmar "Timezone $FUSO — is that right?" "Fuso horário $FUSO — está cer
   || FUSO=$(perguntar "Timezone (e.g. America/Sao_Paulo):" "Fuso horário (ex.: America/Sao_Paulo):")
 
 # ---------------------------------------------------------------- linha e credencial
+
+ETAPA="criando a linha e a credencial do Plow"
 
 # Este e o passo com mais desistencia do instalador, por dois motivos que nao
 # sao culpa de quem instala: ele e manual no meio de um processo automatico, e a
@@ -799,6 +831,8 @@ if [ ! -f plow-credentials ]; then
 fi
 
 # ---------------------------------------------------------------- configurar e subir
+
+ETAPA="construindo e subindo o container"
 
 # O AGENT_ID diz ao reporter PARA QUAL agente do indice ele reporta. Vazio, o
 # servico `agent-index` fica parado de proposito ("standing down") e a
