@@ -362,7 +362,15 @@ fi
 # em 16/09 foi exatamente assim que a terceira tentativa morreu. Agora o Enter
 # tem resposta.
 outra_pasta() {
+  # A sugestão precisa ser uma pasta que não existe: oferecer uma ocupada faria
+  # o Enter cair na atualização de uma cópia que a pessoa nunca confirmou — que
+  # é o caminho do qual ela está justamente saindo.
   alternativa="$1-novo"
+  n=2
+  while [ -e "$alternativa" ] && [ "$n" -lt 20 ]; do
+    alternativa="$1-novo$n"
+    n=$((n + 1))
+  done
   escolha=$(normalizar_caminho "$(perguntar \
     "Install into which directory? (Enter for $alternativa)" \
     "Instalar em qual pasta? (Enter para $alternativa)")")
@@ -413,11 +421,15 @@ else
   # conseguíamos saber por que a atualização falhou.
   ETAPA="atualizando a cópia local"
   if ! SAIDA_GIT=$(git -C "$DESTINO" fetch -q origin 2>&1); then
-    msg "Could not reach GitHub to update the copy in $DESTINO:" \
-        "Não consegui falar com o GitHub para atualizar a cópia em $DESTINO:"
+    msg "Could not update the copy in $DESTINO:" \
+        "Não consegui atualizar a cópia em $DESTINO:"
     printf '%s\n' "$SAIDA_GIT" >&2
-    erro "Check your connection and run this again." \
-         "Confira a conexão e rode isto de novo."
+    # Não chutar "confira a conexão": um fetch falha tanto por rede quanto por
+    # .git corrompido, origin renomeado ou index.lock de uma tentativa que foi
+    # interrompida — e nesses três a rede está ótima. Apagar a pasta é o
+    # caminho que resolve todos eles, e é o único testado do zero.
+    erro "If it is not the network, remove the folder and run this again: rm -rf $DESTINO" \
+         "Se não for a rede, apague a pasta e rode isto de novo: rm -rf $DESTINO"
   fi
 
   # `pull --ff-only` recusa cópia com HEAD destacado, com commit local ou com
