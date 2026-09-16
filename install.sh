@@ -255,6 +255,7 @@ done
 msg "Docker, git and Python: found." "Docker, git e Python: encontrados."
 
 # ------------------------------------------------- iniciar junto com a maquina
+
 #
 # O container tem `restart: unless-stopped`, entao ele volta sozinho assim que o
 # Docker sobe. Mas se o Docker nao sobe com a maquina, o agente fica morto e em
@@ -331,6 +332,20 @@ fi
 
 # ---------------------------------------------------------------- onde instalar
 
+# Quem recusa a pasta sugerida quase nunca tem outra na cabeça — recusou porque
+# a de lá parecia quebrada. O prompt antigo não dava exemplo nem padrão, e um
+# Enter vazio encerrava a instalação com "Nenhuma pasta informada". Num Windows
+# em 16/09 foi exatamente assim que a terceira tentativa morreu. Agora o Enter
+# tem resposta.
+outra_pasta() {
+  alternativa="$1-novo"
+  escolha=$(normalizar_caminho "$(perguntar \
+    "Install into which directory? (Enter for $alternativa)" \
+    "Instalar em qual pasta? (Enter para $alternativa)")")
+  [ -n "$escolha" ] || escolha="$alternativa"
+  printf '%s' "$escolha"
+}
+
 DESTINO="${CHECKPOINT_DIR:-$HOME/checkpoint}"
 if [ -e "$DESTINO" ]; then
   # Uma pasta que ja tem o repo clonado dentro nao e uma pasta ocupada por
@@ -340,11 +355,11 @@ if [ -e "$DESTINO" ]; then
   if [ -d "$DESTINO/.git" ] && [ -f "$DESTINO/compose.yml" ]; then
     confirmar "Found an earlier install in $DESTINO. Continue from it?" \
               "Encontrei uma instalação anterior em $DESTINO. Continuar dela?" s \
-      || DESTINO=$(normalizar_caminho "$(perguntar "Install into which directory?" "Instalar em qual pasta?")")
+      || DESTINO=$(outra_pasta "$DESTINO")
   else
     confirmar "Directory $DESTINO already exists. Use it anyway?" \
               "A pasta $DESTINO já existe. Usar assim mesmo?" n \
-      || DESTINO=$(normalizar_caminho "$(perguntar "Install into which directory?" "Instalar em qual pasta?")")
+      || DESTINO=$(outra_pasta "$DESTINO")
   fi
 fi
 [ -n "$DESTINO" ] || erro "No directory given." "Nenhuma pasta informada."
@@ -352,20 +367,80 @@ fi
 # -c core.autocrlf=false não é necessário para este repo (o .gitattributes fixa
 # LF), mas é para o plow-agents, que não tem um.
 if [ ! -d "$DESTINO/.git" ]; then
-  git clone -q https://github.com/alvesoff/checkpoint.git "$DESTINO"
+  # O git já disse o motivo logo acima — não repetir um palpite por cima dele.
+  # A mensagem antiga chutava "confira a conexão" para uma falha que costuma ser
+  # pasta ocupada.
+  git clone -q https://github.com/alvesoff/checkpoint.git "$DESTINO" \
+    || erro "Could not clone Checkpoint into $DESTINO — the reason is right above." \
+            "Não consegui clonar o Checkpoint em $DESTINO — o motivo está logo acima."
 else
-  # Retomando uma tentativa anterior: o clone que esta ali pode ser de antes da
-  # correcao que a pessoa esta tentando usar agora. --ff-only nunca reescreve
-  # trabalho local; se nao der, segue com o que ja existe.
-  git -C "$DESTINO" pull -q --ff-only 2>/dev/null || msg     "Could not update the local copy. Continuing with what is there."     "Não consegui atualizar a cópia local. Seguindo com a que está aqui."
+  # Retomando uma tentativa anterior. A pasta PRECISA virar a ponta do
+  # origin/main — não "o que der".
+  #
+  # Este script veio do repositório de agora; a pasta pode ser de semanas atrás.
+  # As duas metades discordam em silêncio: o pin da CLI do Plow, o
+  # CHECKPOINT_REV, a lista de skills, e o AGENT_ID que as cópias anteriores a
+  # 14/09 escreviam vazio. O fim disso é um agente que sobe, funciona e nunca
+  # aparece no índice — e ninguém tem como perceber. "Seguindo com a que está
+  # aqui" era o pior desfecho possível, disfarçado de aviso leve.
+  #
+  # O erro do git é mostrado. Ia para /dev/null, e aí nem quem instalou nem eu
+  # conseguíamos saber por que a atualização falhou.
+  if ! SAIDA_GIT=$(git -C "$DESTINO" fetch -q origin 2>&1); then
+    msg "Could not reach GitHub to update the copy in $DESTINO:" \
+        "Não consegui falar com o GitHub para atualizar a cópia em $DESTINO:"
+    printf '%s\n' "$SAIDA_GIT" >&2
+    erro "Check your connection and run this again." \
+         "Confira a conexão e rode isto de novo."
+  fi
+
+  # `pull --ff-only` recusa cópia com HEAD destacado, com commit local ou com
+  # arquivo alterado, e as três acontecem numa tentativa que parou no meio.
+  # `checkout -B` resolve as duas primeiras sem descartar nada.
+  if ! SAIDA_GIT=$(git -C "$DESTINO" checkout -B main origin/main 2>&1); then
+    msg "The copy in $DESTINO has local changes to Checkpoint's own files." \
+        "A cópia em $DESTINO tem alterações locais nos arquivos do próprio Checkpoint."
+    # Descartar arquivo alterado é a única coisa aqui que apaga trabalho de
+    # alguém, então pergunta. O que é da pessoa não está em jogo: .env,
+    # plow-credentials e compose.override.yml estão no .gitignore e nenhum
+    # comando daqui roda `git clean`. Medido antes de escrever esta linha.
+    if confirmar "Discard them and use the published version? (.env, your credentials and your chosen folders are kept)" \
+                 "Descartar essas alterações e usar a versão publicada? (o .env, suas credenciais e suas pastas escolhidas ficam)" s; then
+      if ! SAIDA_GIT=$(git -C "$DESTINO" checkout -f -B main origin/main 2>&1); then
+        printf '%s\n' "$SAIDA_GIT" >&2
+        erro "Could not update it. Remove the folder and run this again: rm -rf $DESTINO" \
+             "Não consegui atualizar. Apague a pasta e rode isto de novo: rm -rf $DESTINO"
+      fi
+    else
+      erro "Then install into another folder, or remove this one: rm -rf $DESTINO" \
+           "Então instale em outra pasta, ou apague esta: rm -rf $DESTINO"
+    fi
+  fi
 fi
 cd "$DESTINO"
 
 # A CLI do Plow e executada aqui e e ela que faz o `mint` -- clonar o HEAD de
 # um repositorio de terceiro e rodar o que vier e substituir codigo nao revisado
 # debaixo de quem segura a credencial. Mesmo padrao do vendor/client.pin.
-PLOW_SHA=$([ -f vendor/plow-agents.pin ] && sed -n 's/^sha=//p' vendor/plow-agents.pin | head -1)
+# Esta era a linha que encerrava a instalação com "código 1" e mais nada, logo
+# depois de dizer que não conseguiu atualizar a cópia local.
+#
+# `X=$(cmd)` sozinho numa linha, sob `set -eu`, derruba o script inteiro quando
+# cmd devolve não-zero — e `[ -f ausente ] && ...` devolve 1. Toda cópia
+# anterior a 15/09 15:20 chega aqui sem o arquivo de pin, então a combinação
+# "cópia velha + atualização que falhou" era morte certa e muda. Agora o teste
+# é um `if`, cujo resultado o `set -e` não olha.
+PLOW_SHA=""
+if [ -f vendor/plow-agents.pin ]; then
+  PLOW_SHA=$(sed -n 's/^sha=//p' vendor/plow-agents.pin | head -1)
+fi
 PLOW_REF="${PLOW_AGENTS_REF:-$PLOW_SHA}"
+# Sem pin nenhum, o passo seguinte clonaria o HEAD da CLI que cria a credencial
+# deste agente. Parar é a resposta certa, não seguir: é código de terceiro
+# rodando com a chave na mão, e a regra do projeto é pinar por SHA.
+[ -n "$PLOW_REF" ] || erro \
+  "vendor/plow-agents.pin is missing, so the Plow CLI would be cloned unpinned. Remove $DESTINO and run this again." \
+  "O arquivo vendor/plow-agents.pin não está aqui, e a CLI do Plow não vai ser clonada sem pin. Apague $DESTINO e rode isto de novo."
 if [ ! -d tools/plow-agents ]; then
   git clone -q -c core.autocrlf=false https://github.com/plow-pbc/plow-agents.git tools/plow-agents \
     || erro "Could not clone the Plow CLI." "Nao consegui clonar a CLI do Plow."
