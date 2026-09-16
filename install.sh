@@ -143,10 +143,20 @@ command -v docker >/dev/null 2>&1 || {
   # Docker Desktop no Windows nem sempre exporta o docker para o PATH do Git Bash.
   # No Git Bash o binario e docker.exe; no WSL, sem extensao. Procurar so um
   # dos dois derruba a instalacao em metade das maquinas Windows.
+  #
+  # No Mac o problema e outro e tao comum quanto: o Docker Desktop atual instala
+  # a CLI em ~/.docker/bin e poe isso no PATH pelo .zprofile. Quem acabou de
+  # instalar e nao reabriu o terminal nao tem `docker` no PATH -- e sem estes
+  # caminhos o script concluiria "Docker nao instalado" com o Docker instalado,
+  # que e a pior mensagem possivel para quem acabou de baixar 600 MB.
   for tentativa in "/c/Program Files/Docker/Docker/resources/bin/docker.exe" \
                    "/c/Program Files/Docker/Docker/resources/bin/docker" \
                    "/mnt/c/Program Files/Docker/Docker/resources/bin/docker.exe" \
-                   "/mnt/c/Program Files/Docker/Docker/resources/bin/docker"; do
+                   "/mnt/c/Program Files/Docker/Docker/resources/bin/docker" \
+                   "$HOME/.docker/bin/docker" \
+                   "/usr/local/bin/docker" \
+                   "/opt/homebrew/bin/docker" \
+                   "/Applications/Docker.app/Contents/Resources/bin/docker"; do
     [ -x "$tentativa" ] && DOCKER="$tentativa" && break
   done
 }
@@ -212,6 +222,39 @@ if ! "$DOCKER" --version >/dev/null 2>&1; then
     else
       erro "Nothing was installed. Install docker and run this again." \
            "Nada foi instalado. Instale o docker e rode de novo."
+    fi
+  elif [ "$SO" = mac ]; then
+    # O Linux ja recebia oferta de instalar (pacman ou get.docker.com) e o
+    # Windows tambem, pelo install.ps1 com winget. O Mac era o unico que so
+    # mandava a pessoa se virar — e e a plataforma de quem verifica o agente
+    # para o hackathon. O Homebrew esta em praticamente todo Mac de
+    # desenvolvedor, e o cask e o caminho oficial.
+    msg "Docker Desktop is not installed, and the agent runs in a container." \
+        "O Docker Desktop nao esta instalado, e o agente roda em container."
+    if ! command -v brew >/dev/null 2>&1; then
+      erro "Install Docker Desktop from https://docs.docker.com/desktop/install/mac-install/ and run this again." \
+           "Instale o Docker Desktop por https://docs.docker.com/desktop/install/mac-install/ e rode de novo."
+    fi
+    if confirmar "Install it now with Homebrew? Large download, and macOS will ask for your password." \
+                 "Instalar agora pelo Homebrew? E um download grande e o macOS vai pedir sua senha." s; then
+      brew install --cask docker || erro \
+        "Homebrew could not install Docker. See the output above." \
+        "O Homebrew nao conseguiu instalar o Docker. Veja a saida acima."
+      # O cask instala o app mas nao o abre, e sem o app aberto nao ha daemon.
+      open -a Docker >/dev/null 2>&1 || true
+      i=0
+      while [ "$i" -lt 120 ]; do
+        command -v docker >/dev/null 2>&1 && DOCKER=docker
+        "$DOCKER" info >/dev/null 2>&1 && break
+        i=$((i + 1))
+        sleep 1
+      done
+      "$DOCKER" --version >/dev/null 2>&1 || erro \
+        "Docker installed, but this shell cannot see it yet. Open a new terminal and run this again." \
+        "Docker instalado, mas este shell ainda nao enxerga. Abra um terminal novo e rode isto de novo."
+    else
+      erro "Nothing was installed. Install Docker Desktop and run this again." \
+           "Nada foi instalado. Instale o Docker Desktop e rode de novo."
     fi
   else
     erro "Docker not found. Install Docker Desktop (or the docker engine) and run this again." \
@@ -294,8 +337,14 @@ docker_sobe_sozinho() {
       systemctl is-enabled docker >/dev/null 2>&1 && return 0 || return 1
       ;;
     mac|windows)
+      # settings.json e o nome antigo: o Docker Desktop passou a gravar em
+      # settings-store.json na 4.34. Sem o nome velho, um Mac com versao anterior
+      # cai no "sem config legivel" e o instalador nem oferece ligar o Docker no
+      # boot — a oferta some em vez de falhar, que e pior de perceber.
       cfg=$(ls "$HOME/Library/Group Containers/group.com.docker/settings-store.json" \
+               "$HOME/Library/Group Containers/group.com.docker/settings.json" \
                "${APPDATA:-}/Docker/settings-store.json" \
+               "${APPDATA:-}/Docker/settings.json" \
                "$HOME/AppData/Roaming/Docker/settings-store.json" 2>/dev/null | head -1)
       [ -n "$cfg" ] || return 0   # sem config legivel, nao afirmar nada
       grep -q '"AutoStart"[[:space:]]*:[[:space:]]*true' "$cfg" && return 0 || return 1
@@ -310,8 +359,14 @@ ligar_docker_no_boot() {
       sudo systemctl enable docker >/dev/null 2>&1 && return 0 || return 1
       ;;
     mac|windows)
+      # settings.json e o nome antigo: o Docker Desktop passou a gravar em
+      # settings-store.json na 4.34. Sem o nome velho, um Mac com versao anterior
+      # cai no "sem config legivel" e o instalador nem oferece ligar o Docker no
+      # boot — a oferta some em vez de falhar, que e pior de perceber.
       cfg=$(ls "$HOME/Library/Group Containers/group.com.docker/settings-store.json" \
+               "$HOME/Library/Group Containers/group.com.docker/settings.json" \
                "${APPDATA:-}/Docker/settings-store.json" \
+               "${APPDATA:-}/Docker/settings.json" \
                "$HOME/AppData/Roaming/Docker/settings-store.json" 2>/dev/null | head -1)
       [ -n "$cfg" ] || return 1
       "$PY" - "$cfg" <<'PYEOF' || return 1
@@ -557,6 +612,11 @@ while IFS= read -r relativo; do
   n=$(find "$candidata" -maxdepth 2 -name .git -type d 2>/dev/null | wc -l | tr -d " ")
   [ "$n" -gt 0 ] && CANDIDATAS="$CANDIDATAS$candidata|$n
 "
+#
+# `Developer` e a convencao do macOS — e da propria Apple: o Finder da um icone
+# proprio a essa pasta e a documentacao dela usa esse caminho. Sem ela, um Mac
+# organizado do jeito padrao nao devolvia candidata nenhuma, e quem instala caia
+# no laco de colar caminho na mao. Justo na plataforma de quem verifica.
 done <<'LUGARES'
 code
 projects
@@ -566,6 +626,10 @@ src
 repos
 git
 workspace
+Developer
+Sites
+Documents/Projects
+Documents/code
 Desktop/Projetos
 Desktop/projects
 Desktop/code
