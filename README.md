@@ -8,22 +8,58 @@ project.
 All of it over iMessage, from your own machine. It answers when you ask, and it speaks first: three
 routines only when something actually changed, and two on a fixed schedule, morning and evening.
 
+## Install
+
+One command. It checks what you have, finds the folders holding your git repositories and shows the
+count, asks before every step that changes anything, and speaks English or Portuguese depending on
+your system.
+
+**What you need first:** a Plow account with one free line (the installer walks you through it), and
+Docker. Nothing else — no API key of your own, no OAuth, no Mac.
+
+**macOS and Linux** — paste into a terminal:
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.sh | sh
 ```
 
-On Windows, from PowerShell:
+**Windows** — paste into PowerShell:
 
 ```powershell
 irm https://raw.githubusercontent.com/alvesoff/checkpoint/main/install.ps1 | iex
 ```
 
-That one opens Docker Desktop and waits for it if it is installed but stopped, and offers to install
-it if it is missing. Nothing else to open or click first.
+That one finds the bash Git for Windows already ships, opens Docker Desktop and waits for it if it
+is installed but stopped, and offers to install Docker, Git or Python with `winget` if any is
+missing. Nothing to open or click first.
 
-One command. It checks what you have, finds the folders holding your git repositories and shows the
-count, asks before every step that changes anything, and speaks English or Portuguese depending on
-your system.
+### What happens, in order
+
+1. **It checks Docker, git and Python**, and offers to install whatever is missing — with your
+   package manager on Linux (`pacman` on Arch, the official Docker script elsewhere) and `winget` on
+   Windows. It asks first, every time.
+2. **It offers to make Docker start with your machine.** Say yes and the agent survives a reboot on
+   its own; say no and you open Docker yourself after each one.
+3. **It downloads this repository** into `~/checkpoint`.
+4. **It creates your Plow line and credential.** This is the only manual step: it prints an
+   activation phrase and a phone number, and you text that phrase from your own phone. Whoever texts
+   it back *is* the account binding, so it cannot be done for you in advance.
+5. **It finds your code.** It looks where people keep projects, counts the git repositories in each
+   folder, and shows you the list before mounting anything. You can say no, or type a path — a
+   Windows path like `C:\Users\you\projects` works. The mount is **read-only**.
+6. **It works out your timezone** and asks you to confirm it.
+7. **It builds and starts the container.** First build takes a few minutes.
+
+Then text the agent "what did I leave unfinished?" and it answers from your own machine.
+
+### If something goes wrong
+
+The installer says which step it stopped on. Two that come up:
+
+- **It stops while updating the local copy** — you have an older `~/checkpoint` it cannot
+  fast-forward. Delete the folder and run the command again.
+- **The container says `Up` but the agent never answers** — the credential file is bad and the boot
+  parked. See [Troubleshooting](#troubleshooting).
 
 ---
 
