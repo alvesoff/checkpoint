@@ -8,7 +8,12 @@ project.
 All of it over iMessage, from your own machine. It answers when you ask, and it speaks first: three
 routines only when something actually changed, and two on a fixed schedule, morning and evening.
 
+[![Watch the install, uncut](https://img.youtube.com/vi/jXfH0weiukY/maxresdefault.jpg)](https://youtu.be/jXfH0weiukY)
+
 ## Install
+
+**[Watch the full install, uncut (2:43)](https://youtu.be/jXfH0weiukY)** — one command, from an empty
+terminal to the agent answering on the phone. Nothing sped up except the image build.
 
 One command. It checks what you have, finds the folders holding your git repositories and shows the
 count, asks before every step that changes anything, and speaks English or Portuguese depending on
