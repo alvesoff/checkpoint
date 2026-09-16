@@ -98,9 +98,17 @@ def main() -> int:
         if (job.get("prompt") or "").strip() == INSTRUCAO.strip():
             print(f"já registrado ({job.get('id')}) — nada a fazer")
             return 0
-        # Recriar, e nao editar: `cron edit` nao alcanca todos os campos, e um job
-        # meio atualizado e pior que um desatualizado.
-        print(f"definicao mudou — recriando {NOME} ({job.get('id')})")
+        # Editar, nao recriar: `cron remove` + `create` zera o monitor_state, e sem
+        # linha de base o proximo tique conta TUDO como mudanca -- um "apareceu
+        # agora" sobre o que ja estava la. Num vigia de segredo isso e pior que
+        # ficar quieto: recapitula achados conhecidos como se fossem novos.
+        print(f"instrucao mudou — atualizando {NOME} ({job.get('id')})")
+        r = subprocess.run([HERMES, "cron", "edit", str(job.get("id")), "--prompt", INSTRUCAO],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            print((r.stdout + r.stderr).strip() or "atualizado")
+            return 0
+        print("nao consegui editar; recriando")
         subprocess.run([HERMES, "cron", "remove", str(job.get("id"))],
                        capture_output=True, text=True)
         break

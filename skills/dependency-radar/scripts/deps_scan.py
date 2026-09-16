@@ -60,13 +60,67 @@ def salvar_cache(cache: dict) -> None:
         pass
 
 
+def _manifesto_proprio(pasta: str) -> bool:
+    """Manifesto NA pasta, não em alguma subpasta dela.
+
+    `manifestos()` desce dois níveis de propósito, para cobrir monorepo. Usar
+    ela aqui faria a pasta-mãe entrar por causa do manifesto de um repositório
+    lá dentro — e o mesmo pacote seria contado duas vezes, inflando o "em
+    quantos projetos" que é a informação central desta skill.
+    """
+    try:
+        return any(e.is_file() and (e.name == "package.json"
+                                    or re.match(r"^requirements.*\.txt$", e.name))
+                   for e in os.scandir(pasta))
+    except OSError:
+        return False
+
+
 def projetos(raiz: str) -> list[str]:
+    """Repositório git em qualquer nível, MAIS pasta que carrega manifesto.
+
+    As duas metades importam, e trocar uma pela outra troca um ponto cego por
+    outro. Só `os.scandir` no primeiro nível perdia tudo numa instalação com
+    duas pastas de código, onde o repositório fica em `/projects/<pasta>/<repo>`
+    — e como o `vulneraveis.py` lê os manifestos daqui, aquele projeto ficava
+    invisível também para a consulta de vulnerabilidade. Falso negativo, não
+    rótulo errado.
+
+    Só a descoberta por `.git` perderia o caso oposto: a pasta que tem
+    `package.json` e nunca virou repositório. Ela é exatamente o tipo de projeto
+    sobre o qual vale avisar.
+    """
     if os.path.isdir(os.path.join(raiz, ".git")):
         return [raiz]
-    try:
-        return [e.path for e in sorted(os.scandir(raiz), key=lambda x: x.name) if e.is_dir()]
-    except OSError:
-        return []
+
+    achados: list[str] = []
+    vistos: set[str] = set()
+
+    def registrar(caminho: str) -> None:
+        real = os.path.normpath(caminho)
+        if real not in vistos:
+            vistos.add(real)
+            achados.append(caminho)
+
+    def descer(pasta: str, nivel: int) -> None:
+        if nivel > 3:
+            return
+        try:
+            entradas = sorted(os.scandir(pasta), key=lambda e: e.name)
+        except OSError:
+            return
+        for e in entradas:
+            if not e.is_dir(follow_symlinks=False) or e.name in IGNORAR:
+                continue
+            if os.path.isdir(os.path.join(e.path, ".git")):
+                registrar(e.path)          # repositório encerra o ramo
+            else:
+                if nivel == 1 and _manifesto_proprio(e.path):
+                    registrar(e.path)      # pasta com manifesto, sem git
+                descer(e.path, nivel + 1)
+
+    descer(raiz, 1)
+    return achados
 
 
 def manifestos(projeto: str) -> list[str]:

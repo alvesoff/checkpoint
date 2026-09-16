@@ -57,6 +57,15 @@ COPY skills/ /opt/hermes/skills/
 RUN find /opt/hermes/skills -mindepth 1 -type d -exec chmod 0755 {} + \
  && find /opt/hermes/skills -mindepth 1 -type f -exec chmod 0644 {} +
 
+# Quais skills sao NOSSAS. O diretorio de destino mistura as nossas com as que a
+# imagem base ja traz, entao a lista sai de uma copia separada do contexto de
+# build -- e nao de uma enumeracao escrita a mao em algum script, que esquece a
+# skill nova em silencio. Foi o que aconteceu com a prior-art e a self-update:
+# o COPY acima as levou para a imagem sozinhas, e so o cont-init que reimpoe as
+# skills precisava saber o nome delas.
+COPY skills/ /tmp/nossas-skills/
+RUN mkdir -p /opt/checkpoint  && ls -1 /tmp/nossas-skills > /opt/checkpoint/skills-do-agente  && chmod 0644 /opt/checkpoint/skills-do-agente  && rm -rf /tmp/nossas-skills
+
 # O git recusa ler repositório cujo dono não é o usuário que o invoca
 # ("detected dubious ownership"). Arquivo montado do host nunca pertence ao uid
 # do agente — em NENHUMA máquina, seja Windows, Linux ou Mac. Sem esta linha a

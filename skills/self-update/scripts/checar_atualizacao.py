@@ -52,8 +52,8 @@ def main() -> int:
         print(json.dumps({
             "sabe": False,
             "motivo": "esta imagem não registrou em que commit foi construída",
-            "como_resolver": "reinstale pelo install.sh, ou rode o build com "
-                             "CHECKPOINT_REV=$(git rev-parse HEAD) no .env",
+            "como_resolver": "reconstrua passando a revisão: "
+                             "CHECKPOINT_REV=$(git rev-parse HEAD) docker compose up --build -d",
         }, ensure_ascii=False))
         return 0
 
@@ -87,7 +87,8 @@ def main() -> int:
         "rev_publicada": remoto[:9],
         "commits_atras": atras,
         "o_que_mudou": list(reversed(mudancas)),
-        "como_atualizar": "cd ~/checkpoint && git pull && docker compose up --build -d",
+        "como_atualizar": "cd ~/checkpoint && git pull && "
+                          "CHECKPOINT_REV=$(git rev-parse HEAD) docker compose up --build -d",
         "aviso": "o rebuild derruba o agente por alguns minutos e a plataforma "
                  "manda um aviso de gateway reiniciando",
     }, ensure_ascii=False))

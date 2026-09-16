@@ -28,10 +28,12 @@ MANIFESTO="$HOME_SKILLS/.bundled_manifest"
 [ -d "$BUNDLED" ] || exit 0
 [ -d "$HOME_SKILLS" ] || exit 0
 
-for origem in "$BUNDLED"/agenda "$BUNDLED"/browsing "$BUNDLED"/daily \
-              "$BUNDLED"/delivery-text "$BUNDLED"/dependency-radar \
-              "$BUNDLED"/doc-check "$BUNDLED"/stack-audit "$BUNDLED"/todo \
-              "$BUNDLED"/where-i-left-off; do
+# A lista das nossas skills sai de um arquivo que a propria imagem carrega, e
+# nao de uma enumeracao aqui: enumerar esquece a skill nova em silencio -- a
+# prior-art e a self-update nasceram hoje e ficaram de fora sem ninguem
+# perceber, porque o COPY do Dockerfile as levou para a imagem sozinhas e so
+# este laco precisava saber o nome delas.
+for origem in $(cat /opt/checkpoint/skills-do-agente 2>/dev/null | sed "s|^|$BUNDLED/|"); do
   [ -d "$origem" ] || continue
   nome=$(basename "$origem")
   destino="$HOME_SKILLS/$nome"

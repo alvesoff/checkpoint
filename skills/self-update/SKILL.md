@@ -21,6 +21,10 @@ Respostas possíveis:
   **Diga que não sabe.** Não chute "está atualizado": é a resposta que faz alguém deixar de
   atualizar.
 
+A variável não é enfeite: sem ela a imagem nova nasce sem saber a própria versão, e o agente
+passa a responder que **não sabe** — o que é honesto, mas some com o aviso. Pior seria persistir o
+valor no `.env`, onde ele envelheceria e o agente juraria estar atrasado logo depois de atualizar.
+
 ## O agente não atualiza, e isso é de propósito
 
 Reconstruir a própria imagem exigiria o socket do Docker do host montado dentro do container — e aí
@@ -30,7 +34,7 @@ deliberada e o preço dela é este: a instalação fica parada até o dono agir.
 Então **nunca ofereça atualizar, nunca diga que vai atualizar**. Entregue o comando e o que muda:
 
 ```
-cd ~/checkpoint && git pull && docker compose up --build -d
+cd ~/checkpoint && git pull && CHECKPOINT_REV=$(git rev-parse HEAD) docker compose up --build -d
 ```
 
 E avise que o rebuild derruba o agente por alguns minutos — quem estiver conversando vai receber um

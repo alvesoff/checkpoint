@@ -736,7 +736,6 @@ fi
 cat > .env <<EOF
 CODE_DIR=$CODE_DIR
 CODE_TARGET=${CODE_TARGET:-/projects}
-CHECKPOINT_REV=$(git -C "$DESTINO" rev-parse HEAD 2>/dev/null || echo desconhecido)
 TZ=$FUSO
 AGENT_ID=checkpoint
 EOF
@@ -744,7 +743,12 @@ EOF
 echo
 msg "Building the image (first time takes a few minutes)..." \
     "Construindo a imagem (a primeira vez demora alguns minutos)..."
-"$DOCKER" compose up --build -d || erro "Build failed." "A construção falhou."
+# O rev vai na INVOCACAO, nao no .env: gravado, ele envelheceria no primeiro
+# `git pull` e o agente passaria a jurar que esta atrasado para sempre --
+# inclusive logo depois de a pessoa ter atualizado. Ausente vira
+# "desconhecido", e o verificador responde que nao sabe, que e honesto.
+CHECKPOINT_REV="$(git -C "$DESTINO" rev-parse HEAD 2>/dev/null || echo desconhecido)" \
+  "$DOCKER" compose up --build -d || erro "Build failed." "A construção falhou."
 
 # O pior modo de falha medido neste projeto: a imagem constroi, o container
 # sobe, e o runtime "estaciona" por credencial recusada sem nunca abrir o
