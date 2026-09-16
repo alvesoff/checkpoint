@@ -144,7 +144,8 @@ if ! "$DOCKER" --version >/dev/null 2>&1; then
              "Falta o Docker e nao ha sudo aqui. Instale o docker como root e rode de novo."
       fi
     fi
-    if confirmar "Install Docker Engine now? (your package manager may update other packages; asks for your password)" \n                 "Instalar o Docker Engine agora? (o gerenciador de pacotes pode atualizar outros pacotes; vai pedir sua senha)" s; then
+    if confirmar "Install Docker Engine now? (your package manager may update other packages; asks for your password)" \
+                 "Instalar o Docker Engine agora? (o gerenciador de pacotes pode atualizar outros pacotes; vai pedir sua senha)" s; then
       command -v curl >/dev/null 2>&1 || erro \
         "curl is needed to fetch the Docker installer." \
         "Preciso do curl para baixar o instalador do Docker."
@@ -201,7 +202,14 @@ fi
 # nenhuma resolve. WSL se declara Linux, que e o certo.
 if ! INFO_ERRO=$("$DOCKER" info 2>&1 >/dev/null); then
   case "$INFO_ERRO" in
-    *"permission denied"*|*"dial unix"*)
+    # So "permission denied". O padrao "dial unix" tambem casava, e a CLI 29
+    # -- a que o pacman, o get.docker.com e o Docker Desktop entregam hoje --
+    # poe "dial unix" na mensagem de DAEMON PARADO. Resultado: a pessoa era
+    # mandada entrar no grupo docker, o que nao liga daemon nenhum, e rodar
+    # de novo devolvia a mesma frase para sempre. O caso real de permissao
+    # continua coberto: com socket 0660 e usuario fora do grupo, a CLI 29
+    # emite "permission denied" sem "dial unix".
+    *"permission denied"*)
       erro "Docker is running, but your user cannot reach it. Run:  sudo usermod -aG docker \$USER  then log out and back in (or run: newgrp docker)." \
            "O Docker esta rodando, mas seu usuario nao alcanca ele. Rode:  sudo usermod -aG docker \$USER  e faca logout/login (ou rode: newgrp docker)."
       ;;
