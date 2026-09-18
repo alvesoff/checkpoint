@@ -177,6 +177,21 @@ would only re-ask a question the Dockerfile already answered, somewhere that can
 For scale: a full day of development, testing and scheduled runs came to roughly 3.2 million tokens
 and 3.36 dollars of Plow inference credit, which the Plow account provides.
 
+### Installed before September 18, 2026? Rebuild.
+
+Your image carries an Agent Index client pinned at `f900ff1`. That version **gives up on the index's
+409** — the response the server sends to anyone running an agent they do not own — and it does so
+before minting a report key. So an install by anyone other than the author runs fine, reports
+nothing, and shows up nowhere. The pin is now `87901f8`, which joins the listing as an installer
+instead.
+
+The agent never updates itself. Pull and rebuild:
+
+```bash
+git pull
+docker compose up --build -d
+```
+
 ### Installed before September 14, 2026?
 
 The installer used to write an empty `AGENT_ID`, and the reporter stands down without it: the agent

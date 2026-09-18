@@ -10,6 +10,21 @@
 #
 # The checksum is the second half of that. A sha in a URL is only as good as
 # the host serving it, and this file is executed inside the agent.
-sha=f900ff144076f0a766584b6ec4d0993600779b16
-sha256=633ad3bc24a51d6b7dcfaae319983ab174d9853a525237d99cac64878452560c
+# Bumpado em 18/09 de f900ff1. O mecanismo, da propria base do Plow (commit
+# 1990a71) e do comentario do cliente novo: f900ff1 SAI no 409 do indice antes
+# de gerar a chave de report, e 409 e o que o servidor responde para quem
+# instala um agente que nao e dele. Consequencia: instalacao de terceiro deste
+# agente sobe, funciona, e nunca reporta uso nenhum. 87901f8 entra como
+# INSTALADOR em vez de desistir; e o mesmo pin que a base do Plow e o
+# life-assistant rodam.
+#
+# NAO medido daqui: quanto disso explica o contador de usuarios parado em 1 --
+# nao da para saber quantas das instalacoes de terceiro chegaram a subir. O que
+# e certo e que, se alguma subiu, ela era invisivel.
+#
+# Alcanca so quem instalar DEPOIS: quem ja roda tem f900ff1 dentro da imagem, e
+# o `self-update` avisa mas nunca atualiza sozinho. Por isso o README pede o
+# rebuild na secao de quem instalou antes.
+sha=87901f8b182a8a7c65ee3dd7267f8f835ee2a545
+sha256=c3bf54ed37aec22704b8003a7ff6385a1fd3ef49207ce55613ddc41df36a1b01
 path=standalone/agent_index_client.py
