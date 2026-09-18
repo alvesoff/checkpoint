@@ -7,10 +7,12 @@ services:
         # versao e o verificador de atualizacao diz isso, em vez de mentir.
         CHECKPOINT_REV: "${CHECKPOINT_REV:-desconhecido}"
     environment:
-      # O id registrado no Agent Index. Sem ele o reporter fica parado de
-      # propósito, em vez de adivinhar um nome. Preenchido quando a ideia
-      # estiver travada e o agente for registrado.
-      AGENT_ID: "${AGENT_ID:-}"
+      # O id registrado no Agent Index. O padrão é `checkpoint`, que é este
+      # agente — quem instala está instalando ESTE agente, e o cliente do índice
+      # entra na listagem como instalador. Vazio aqui sobrescreveria o padrão
+      # assado na imagem e o reporter ficaria parado, que foi o defeito de
+      # 14/09. Troque só num fork com listagem própria.
+      AGENT_ID: "${AGENT_ID:-checkpoint}"
       # O container nasce em UTC. Sem isto, "sua reunião é às 12h" sai errado
       # para qualquer pessoa fora do meridiano de Greenwich — e o horário do
       # cutucão automático também. Ajuste no .env para o seu fuso.
