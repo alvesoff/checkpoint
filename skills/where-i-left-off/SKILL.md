@@ -72,6 +72,35 @@ um relatório.
 - Se `/projects` não existir ou não tiver repositório, o script devolve `erro` e
   `como_resolver`. Repasse o `como_resolver` em vez de adivinhar.
 
+## Quando NÃO há `/projects` — e ainda assim dá para ler código
+
+Nem toda instalação tem pasta montada. Na nuvem da Plow **não há disco do dono**: o
+`plow-agents deploy` não passa volume nenhum, então `/projects` simplesmente não existe, e mandar
+a pessoa conferir o `CODE_DIR` é mandar mexer numa coisa que não existe ali.
+
+```sh
+python3 /opt/hermes/skills/where-i-left-off/scripts/onde_estou.py
+```
+
+Ele separa os dois casos, que pedem respostas opostas: `pasta montada e vazia` (aí `CODE_DIR` é
+exatamente o assunto) e `sem pasta de código` (aí não é).
+
+No segundo caso existe caminho, e ele **não pede credencial nenhuma**:
+
+```sh
+python3 /opt/hermes/skills/where-i-left-off/scripts/clonar_publico.py <dono/repo>
+export PROJECTS_ROOT=/var/lib/checkpoint-work/publico
+```
+
+Depois disso as skills de sempre funcionam sobre a cópia — `scan_projects.py`, `deps_scan.py`,
+`vulneraveis.py`, `auditar.py`. Nada muda nelas: elas já leem a raiz dessa variável.
+
+Só repositório **público**. Privado falha na hora e a mensagem diz isso — não insista, não peça
+token, não ofereça guardar credencial.
+
+E é **leitura**. Nada de ramo, commit ou Pull Request: isso é a skill `contribute`, é outra área, e
+depende de configuração que a nuvem não tem.
+
 ## O cutucão (aviso na hora certa)
 
 Registre uma vez, quando o dono pedir para ser avisado sozinho:
