@@ -143,7 +143,13 @@ def main() -> int:
             return 1
         git("config", "credential.helper", HELPER, cwd=caminho)
         git("config", "user.name", "Checkpoint", cwd=caminho)
-        git("config", "user.email", "checkpoint@users.noreply.github.com", cwd=caminho)
+        # `.invalid` é reservado pela RFC 2606 e nunca resolve, e é isso que se
+        # quer aqui: o GitHub mapeia `<usuario>@users.noreply.github.com` para a
+        # CONTA com aquele nome de usuário. `checkpoint@users.noreply.github.com`
+        # parecia neutro e credita uma pessoa real — conta de 2009, seis
+        # repositórios, nenhuma relação com isto. Aconteceu no PR #2 deste repo
+        # e teria acontecido em toda instalação, sempre no mesmo estranho.
+        git("config", "user.email", "noreply@checkpoint.invalid", cwd=caminho)
     else:
         git("config", "credential.helper", HELPER, cwd=caminho)
         if git("fetch", "--quiet", "origin", cwd=caminho)[0] != 0:
