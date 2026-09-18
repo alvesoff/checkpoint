@@ -4,7 +4,15 @@
 # A tag é um `base-<sha>` imutável nomeando um commit de plow-pbc/plow-hermes-agent,
 # fixada também por digest: um agente que segura credencial viva não pode ter
 # código trocado por baixo dele por uma tag que se move.
-FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-4747960eaa8a44ac24424bf0cc6c22559af61f43@sha256:fe9b0f428f9ed2da1698ecf0b504c79eceb9e016e770291ff6b3418b9f65449d
+#
+# Atualizada em 18/09 de `base-4747960e` (10/09) para esta, 54 commits à frente.
+# O motivo é a instrução de verificação do hackathon, literal: "if you built on
+# Plow's Hermes base, make sure to use the latest version". Ficamos oito dias
+# atrás sem perceber porque um digest fixo não avisa que envelheceu.
+#
+# Esta é a base mais nova que EXISTE no registro: os seis commits acima dela em
+# plow-hermes-agent ainda não tinham imagem publicada quando isto foi conferido.
+FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-42cb36ed16f513e9c7461b3f355acec181c8a26d@sha256:7bb771761c075ef3736c4cc7bdc48402ce325ed35b5efb529b1b31ec7956fd40
 
 # Identidade. O plow-init compõe o SOUL.md a cada boot como "persona da base +
 # este arquivo", então nada é copiado direto para /var/lib/hermes/SOUL.md.
