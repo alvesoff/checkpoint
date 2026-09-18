@@ -28,10 +28,27 @@ services:
       # Um PAT do GitHub. Use um FINE-GRAINED limitado aos repositórios acima,
       # com Contents: read/write e Pull requests: read/write. Nada além disso.
       CHECKPOINT_GH_TOKEN: "${CHECKPOINT_GH_TOKEN:-}"
+    # A credencial que o `plow-agents mint <linha>` escreveu, carregada como
+    # AMBIENTE — que é como a plataforma passou a entregá-la.
+    #
+    # Era um bind em `/var/lib/plow/credentials.host:ro`, e a imagem base
+    # promovia o arquivo para o caminho final. **A base parou de promover** nas
+    # versões de 15 e 16/09, e o resultado foi o pior tipo de falha: o container
+    # sobe, fica `Up`, e sessenta segundos depois o `plow-init` parkeia com
+    # "no PLOW_API_BASE in the environment and no credential at
+    # /var/lib/plow/credentials". O agente não responde e nada no chat diz por
+    # quê — ficou assim por horas em 18/09.
+    #
+    # Agora é igual ao `compose.yml` que a própria Plow publica, e o arquivo é
+    # literalmente um dotenv (`PLOW_API_BASE=`, `PLOW_AGENT_TOKEN=`). De quebra,
+    # `PLOW_CREDENTIALS` deixa apontar para fora do checkout, e aí um
+    # `docker compose down -v` não leva a credencial junto.
+    #
+    # Um detalhe que melhora: com `env_file` um arquivo ausente faz o compose
+    # falhar na hora, com o nome do arquivo. O bind criava um DIRETÓRIO vazio no
+    # lugar e o erro só aparecia sessenta segundos depois, falando de credencial.
+    env_file: ${PLOW_CREDENTIALS:-./plow-credentials}
     volumes:
-      # `.host`, não o caminho que o agente lê: um bind carrega a dona e o modo
-      # desta máquina, e a imagem copia o arquivo para o lugar certo como root.
-      - ./plow-credentials:/var/lib/plow/credentials.host:ro
       # A pasta que contém seus projetos, SOMENTE LEITURA. É a única coisa que
       # este agente precisa para funcionar — não há OAuth, token nem conta.
       # Aponte para a pasta que contém os projetos, não para um projeto só.
