@@ -132,16 +132,28 @@ repository **from the remote** into a workspace of its own, edits there, and ope
 request** for you to review. Your folder stays mounted read-only and untouched — it writes to its
 copy, never to yours.
 
-Two lines in `.env`, then restart:
+**The installer asks.** If you are already logged into the [GitHub CLI](https://cli.github.com), it
+offers to use that login, so there is no token to create — most developers already have it. If you
+are not, it offers to take a token you paste. The default answer to both is **no**, and skipping
+costs you nothing else.
+
+Either way it then asks **which repositories** it may touch, and writes both to `.env`:
 
 ```
 CONTRIB_REPOS=you/your-repo,you/another-repo
-CHECKPOINT_GH_TOKEN=github_pat_...
+CHECKPOINT_GH_TOKEN=...
 ```
 
-Use a **fine-grained** token limited to exactly those repositories, with `Contents: read/write` and
-`Pull requests: read/write`. Nothing else. A classic token with `repo` scope hands the agent write
-access to every repository you own, and this one runs scheduled jobs unattended.
+No repositories named means the capability stays off, even with a token present.
+
+**Know what you are handing over.** A GitHub CLI login and a classic `repo` token both reach **every
+repository on your account** — `CONTRIB_REPOS` is what this agent's scripts check, not a limit
+GitHub enforces, and the agent can run shell commands. If you want the boundary enforced on
+GitHub's side rather than ours, create a **fine-grained** token limited to those repositories, with
+`Contents: read/write` and `Pull requests: read/write` and nothing else, and paste that instead.
+
+On Linux and macOS the installer closes `.env` to your user only. On Windows it cannot — the file
+inherits whatever the folder's ACL says.
 
 `CONTRIB_REPOS` is the gate, and the script never reads it from the environment: boot copies it to a
 root-owned file under `/opt`, because a turn of the agent can invoke a script with any environment

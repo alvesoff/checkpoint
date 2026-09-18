@@ -918,12 +918,71 @@ ETAPA="construindo e subindo o container"
 # tinha o valor preenchido a mao no .env: funcionava para nos e falhava em
 # silencio para todo mundo que instalasse. O reporter e o UNICO requisito
 # obrigatorio do hackathon, e `install_success` conta quem REPORTOU uso.
+# ------------------------------------------------- propor mudança por PR
+#
+# Opcional, e o padrão é NÃO. O agente sabe propor melhoria abrindo um Pull
+# Request numa cópia dele — a sua pasta continua somente leitura —, mas para
+# empurrar o ramo ele precisa de uma credencial do GitHub.
+#
+# A credencial sai da SUA máquina quando dá: quem já usa o `gh` já está logado,
+# e pedir um token novo é a coisa que mais derruba instalação. Onde não há `gh`,
+# a pergunta é feita e a pessoa cola um token — ou pula, que é o padrão.
+ETAPA="configurando o Pull Request (opcional)"
+GH_TOKEN=""
+GH_REPOS=""
+echo
+msg "Optional: the agent can propose improvements as a draft Pull Request." \
+    "Opcional: o agente pode propor melhorias abrindo um Pull Request em rascunho."
+msg "It clones into a copy of its own — your folder stays read-only." \
+    "Ele clona numa cópia dele — a sua pasta continua somente leitura."
+
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  QUEM=$(gh api user --jq .login 2>/dev/null || echo "")
+  msg "Found you logged into the GitHub CLI${QUEM:+ as $QUEM}. That credential reaches every repository on the account." \
+      "Encontrei você logado no GitHub CLI${QUEM:+ como $QUEM}. Essa credencial alcança TODOS os repositórios da conta."
+  if confirmar "Use it, so the agent can open pull requests?" \
+               "Usar ela, para o agente conseguir abrir pull requests?" n; then
+    GH_TOKEN=$(gh auth token 2>/dev/null || echo "")
+  fi
+else
+  if confirmar "Paste a GitHub token to enable it? (a fine-grained one, limited to the repositories you choose)" \
+               "Colar um token do GitHub para ligar isso? (de preferência fine-grained, limitado aos repositórios que você escolher)" n; then
+    GH_TOKEN=$(perguntar "Token:" "Token:")
+  fi
+fi
+
+if [ -n "$GH_TOKEN" ]; then
+  # A lista existe mesmo com credencial ampla: ela é o que o script confere
+  # antes de tocar em qualquer coisa, e vive num arquivo que o agente lê e não
+  # escreve. Vazia, a capacidade fica desligada — é o padrão seguro.
+  msg "Which repositories may it touch? Example: you/api,you/site" \
+      "Quais repositórios ele pode tocar? Exemplo: voce/api,voce/site"
+  GH_REPOS=$(perguntar "Repositories (Enter to skip):" "Repositórios (Enter para pular):")
+  [ -n "$GH_REPOS" ] || GH_TOKEN=""
+fi
+
 cat > .env <<EOF
 CODE_DIR=$CODE_DIR
 CODE_TARGET=${CODE_TARGET:-/projects}
 TZ=$FUSO
 AGENT_ID=checkpoint
+CONTRIB_REPOS=$GH_REPOS
+CHECKPOINT_GH_TOKEN=$GH_TOKEN
 EOF
+# O .env passa a guardar um token que vale a conta inteira do GitHub, então
+# fecha para o dono. No Windows isto é no-op — o MSYS não tem permissão POSIX e
+# quem manda é a ACL do NTFS —, e é por isso que o `|| true` está aqui em vez de
+# uma checagem: falhar a instalação por causa disso seria pior, e prometer uma
+# proteção que não existe seria pior ainda.
+chmod 0600 .env 2>/dev/null || true
+
+if [ -n "$GH_TOKEN" ]; then
+  msg "Pull requests enabled for: $GH_REPOS" \
+      "Pull request ligado para: $GH_REPOS"
+else
+  msg "Pull requests stay off. Turn it on later in .env: CONTRIB_REPOS and CHECKPOINT_GH_TOKEN." \
+      "Pull request fica desligado. Para ligar depois, no .env: CONTRIB_REPOS e CHECKPOINT_GH_TOKEN."
+fi
 
 echo
 msg "Building the image (first time takes a few minutes)..." \
