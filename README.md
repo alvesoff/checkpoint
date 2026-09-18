@@ -168,7 +168,7 @@ form. Every change becomes a PR, and every PR is a draft.
 ## Usage reporting
 
 This image carries a reporter that publishes token usage to the
-[Agent Index](https://aiworthusing.com/agent-index) once an hour: day by model counts and nothing
+[Agent Index](https://aiworthusing.com/agent-index) every 5 minutes: day by model counts and nothing
 else. No prompts, no task titles, no file paths, no code.
 
 **There is no switch.** It is in the image because it was built in, and that is the decision. A flag
@@ -182,7 +182,7 @@ and 3.36 dollars of Plow inference credit, which the Plow account provides.
 Your image carries an Agent Index client pinned at `f900ff1`. That version **gives up on the index's
 409** — the response the server sends to anyone running an agent they do not own — and it does so
 before minting a report key. So an install by anyone other than the author runs fine, reports
-nothing, and shows up nowhere. The pin is now `87901f8`, which joins the listing as an installer
+nothing, and shows up nowhere. The pin is now `3f11699`, which joins the listing as an installer
 instead.
 
 The agent never updates itself. Pull and rebuild:
@@ -225,7 +225,7 @@ installer writes it.
 `TZ` matters: the container is UTC by default, and a calendar read in the wrong timezone tells you a
 9am meeting is at noon.
 
-`AGENT_ID` is what the hourly usage reporter reports **for**. Leave it out and the `agent-index`
+`AGENT_ID` is what the usage reporter reports **for**. Leave it out and the `agent-index`
 service stands down on purpose: the install runs fine and simply never appears on the index.
 The installer writes it for you — this line is here for the manual path.
 

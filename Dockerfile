@@ -77,7 +77,7 @@ RUN set -eu; \
     [ "$got" = "$want" ] || { echo "agent-index client is $got, pin says $want" >&2; exit 1; }; \
     chmod 0644 /opt/plow/agent-index-client.py
 
-# O serviço supervisionado que chama o reporter de hora em hora.
+# O serviço supervisionado que chama o reporter a cada 5 minutos.
 COPY image/s6-overlay/ /etc/s6-overlay/
 RUN chmod 0755 /etc/s6-overlay/scripts/latch-probe.sh /etc/s6-overlay/s6-rc.d/latch-probe/up /etc/s6-overlay/scripts/checkpoint-crons.sh /etc/s6-overlay/s6-rc.d/checkpoint-crons/up /etc/s6-overlay/scripts/net-watchdog.sh /etc/s6-overlay/s6-rc.d/net-watchdog/run
 RUN chmod 0755 /etc/s6-overlay/s6-rc.d/agent-index/run
