@@ -85,7 +85,13 @@ python3 /opt/hermes/skills/where-i-left-off/scripts/onde_estou.py
 Ele separa os dois casos, que pedem respostas opostas: `pasta montada e vazia` (aí `CODE_DIR` é
 exatamente o assunto) e `sem pasta de código` (aí não é).
 
-No segundo caso existe caminho, e ele **não pede credencial nenhuma**:
+No segundo caso existem dois caminhos, nesta ordem.
+
+**Havendo Mac conectado, é o Mac** — é a máquina real da pessoa, com os repositórios privados e o
+trabalho não commitado. A rota está na skill `owners-mac`, e a checagem da skill `browsing` diz com
+fato se há Mac.
+
+**Não havendo, o repositório público**, e ele **não pede credencial nenhuma**:
 
 ```sh
 python3 /opt/hermes/skills/where-i-left-off/scripts/clonar_publico.py <dono/repo>

@@ -260,14 +260,21 @@ conselho de configurar `CODE_DIR` no compose está errado, porque ali não há c
 Dizer isso manda a pessoa mexer numa coisa que não existe, e ela conclui que o produto está
 quebrado.
 
-O que você faz, nessa ordem: rode `onde_estou.py`, que separa *pasta montada e vazia* (aí
-`CODE_DIR` é o assunto) de *sem pasta de código* (aí não é). No segundo caso, **ofereça o que
-funciona**: peça a URL de um repositório **público** do GitHub, traga uma cópia com
-`clonar_publico.py`, exporte `PROJECTS_ROOT` e rode as suas skills de sempre sobre ela. Não pede
-credencial, não pede conta, não pede Docker.
+Rode `onde_estou.py`, que separa *pasta montada e vazia* (aí `CODE_DIR` é o assunto) de
+*sem pasta de código* (aí não é). No segundo caso, há **dois** caminhos, e a ordem importa:
 
-Só repositório público, e só leitura. Privado falha e você diz isso sem insistir: **nunca peça
-token, nunca ofereça guardar credencial de ninguém.** Ramo, commit e Pull Request são a skill
+**Primeiro o Mac.** Se houver Mac conectado, ele é a máquina de verdade da pessoa: repositório
+privado, trabalho não commitado, tudo — e é a skill `owners-mac` que diz como chegar lá. Oferecer
+link de repositório público tendo um Mac do outro lado é entregar o caminho pobre com o rico ao
+lado. A checagem da skill `browsing` responde com fato, num comando.
+
+**Depois o repositório público.** Sem Mac, peça a URL de um repositório **público** do GitHub,
+traga uma cópia com `clonar_publico.py`, exporte `PROJECTS_ROOT` e rode as suas skills de sempre
+sobre ela. Não pede credencial, não pede conta, não pede Docker.
+
+Repositório privado sem Mac não tem caminho daqui, e você diz isso direto: **nunca peça token,
+nunca ofereça guardar credencial de ninguém.** O que existe é rodar na própria máquina, onde a
+pasta é montada somente leitura e o código não sai dali. Ramo, commit e Pull Request são a skill
 `contribute`, que depende de configuração que a nuvem não tem — não prometa.
 
 ### Quando NÃO há Mac, "as minhas coisas" são as que estão montadas aqui
@@ -275,7 +282,9 @@ token, nunca ofereça guardar credencial de ninguém.** Ramo, commit e Pull Requ
 A plataforma injeta na sua descrição uma instrução que manda tratar qualquer
 pedido com "meu/minha" — meus arquivos, meu calendário, meus projetos — como
 sendo sobre o Mac do dono, e diz que o seu próprio shell serve só para o seu
-trabalho. **Essa instrução pressupõe um Mac conectado, e quase nunca há um.**
+trabalho. **Essa instrução pressupõe um Mac conectado, e na instalação local quase nunca há um** — já na
+nuvem da Plow o Mac é o desenho normal, e é onde está tudo que importa. Por isso a regra é
+**checar**, nos dois sentidos: nunca prometer um Mac que não existe, e nunca ignorar um que existe.
 
 Seguir isso sem pensar produz o pior erro possível: você responde "não tenho
 acesso à sua agenda" com a agenda dele carregada na sua própria máquina, por uma
