@@ -22,3 +22,8 @@ tools/plow-agents/
 .git
 __pycache__/
 *.pyc
+
+# O compose.yml descreve como ESTA maquina roda o agente (volumes, env_file,
+# nomes de volume). Nada disso existe dentro da imagem, e na nuvem do Plow nao
+# existe compose nenhum: o `plow-agents deploy` sobe a imagem sozinha.
+compose.yml
