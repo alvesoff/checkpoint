@@ -5,14 +5,19 @@
 # fixada também por digest: um agente que segura credencial viva não pode ter
 # código trocado por baixo dele por uma tag que se move.
 #
-# Atualizada em 18/09 de `base-4747960e` (10/09) para esta, 54 commits à frente.
-# O motivo é a instrução de verificação do hackathon, literal: "if you built on
-# Plow's Hermes base, make sure to use the latest version". Ficamos oito dias
-# atrás sem perceber porque um digest fixo não avisa que envelheceu.
+# Atualizada em 18/09 de `base-4747960e`, de 10/09. Um digest fixo protege
+# contra troca de código por baixo, e é para isso que ele existe -- o custo é
+# que ele não avisa que envelheceu, e ficamos oito dias atrás sem perceber.
 #
-# Esta é a base mais nova que EXISTE no registro: os seis commits acima dela em
-# plow-hermes-agent ainda não tinham imagem publicada quando isto foi conferido.
-FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-42cb36ed16f513e9c7461b3f355acec181c8a26d@sha256:7bb771761c075ef3736c4cc7bdc48402ce325ed35b5efb529b1b31ec7956fd40
+# ESTA base é a que o Daniel Delattre indicou no PR #1, e ele é quem verifica o
+# agente para o hackathon: alinhar com o que o verificador pediu vale mais do
+# que as oito horas de diferença para a mais recente do registro.
+#
+# Ela semeia `anthropic/claude-sonnet-5`. A base de 18/09 troca o padrão para
+# `z-ai/glm-5.2` -- metade do preço por token e, pela medição da própria Plow no
+# commit, 34 contra 38 no Artificial Analysis. Voltar para o Sonnet é decisão do
+# dono, tomada sabendo do custo.
+FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-51f83158a70a383f03a4d03dbd8b6ea102cf0361@sha256:253d7ed3409effa7fa59113d93b4b79bb731d8264cdaf4cd60294924d0110a2e
 
 # Identidade. O plow-init compõe o SOUL.md a cada boot como "persona da base +
 # este arquivo", então nada é copiado direto para /var/lib/hermes/SOUL.md.
