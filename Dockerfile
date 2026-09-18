@@ -5,19 +5,21 @@
 # fixada também por digest: um agente que segura credencial viva não pode ter
 # código trocado por baixo dele por uma tag que se move.
 #
-# Atualizada em 18/09 de `base-4747960e`, de 10/09. Um digest fixo protege
-# contra troca de código por baixo, e é para isso que ele existe -- o custo é
-# que ele não avisa que envelheceu, e ficamos oito dias atrás sem perceber.
+# Atualizada em 18/09 para a mais recente do registro (base-0eba9f29, de
+# 18/09 13:05Z), porque o Daniel Delattre pediu a base mais nova como condicao
+# do deploy de um clique. Ela substitui a base-51f83158 que o PR #1 dele tinha
+# indicado de manha -- a instrucao nova e dele e vale sobre a antiga.
 #
-# ESTA base é a que o Daniel Delattre indicou no PR #1, e ele é quem verifica o
-# agente para o hackathon: alinhar com o que o verificador pediu vale mais do
-# que as oito horas de diferença para a mais recente do registro.
+# O que essa base traz e que importa aqui: ela bumpa o pin do cliente do Agent
+# Index para 87901f8, que ENTRA COMO INSTALADOR no 409 em vez de desistir. O pin
+# antigo fazia toda instalacao de terceiro nunca reportar nada. Nos bumpamos o
+# nosso `vendor/client.pin` junto, que e o que a nossa imagem realmente busca.
 #
-# Ela semeia `anthropic/claude-sonnet-5`. A base de 18/09 troca o padrão para
-# `z-ai/glm-5.2` -- metade do preço por token e, pela medição da própria Plow no
-# commit, 34 contra 38 no Artificial Analysis. Voltar para o Sonnet é decisão do
-# dono, tomada sabendo do custo.
-FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-51f83158a70a383f03a4d03dbd8b6ea102cf0361@sha256:253d7ed3409effa7fa59113d93b4b79bb731d8264cdaf4cd60294924d0110a2e
+# O custo: ela semeia `z-ai/glm-5.2` como modelo padrao -- metade do preco por
+# token e, pela medicao da propria Plow, 34 contra 38 do Sonnet no Artificial
+# Analysis. O modelo passa a ser FIXADO pelo `05-checkpoint-config`, para que a
+# base nao decida sozinha o que o agente roda enquanto os hosts o testam.
+FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-0eba9f29edbcffeb846064bbc718b54d3d3e0e47@sha256:14a8307bee7d40c926be4ff7c599d9e973c3d0213099072f0015dd21b61f4594
 
 # Identidade. O plow-init compõe o SOUL.md a cada boot como "persona da base +
 # este arquivo", então nada é copiado direto para /var/lib/hermes/SOUL.md.
@@ -36,6 +38,23 @@ RUN chmod 0644 /opt/hermes/plow-seed/persona.md
 # verificador diz isso em vez de inventar uma resposta.
 ARG CHECKPOINT_REV=desconhecido
 RUN mkdir -p /opt/checkpoint  && printf '%s' "$CHECKPOINT_REV" > /opt/checkpoint/rev  && chmod 0644 /opt/checkpoint/rev
+
+# Quem este agente e para o Agent Index, assado na imagem como PADRAO.
+#
+# Ate aqui isto vinha so do ambiente (`AGENT_ID` no compose), e vazio o reporter
+# fica parado de proposito. Duas coisas quebram nesse arranjo:
+#
+# 1. O deploy na nuvem do Plow NAO passa ambiente nenhum. O `plow-agents deploy`
+#    manda `{name, line_uid, provider}` e mais nada -- sem AGENT_ID assado, um
+#    agente rodando na nuvem nunca reporta uso, e uso reportado e a metrica
+#    publica de ranking.
+# 2. Quem instala este agente esta instalando ESTE agente. O id nao e segredo
+#    nem escolha de quem instala: o cliente do indice entra como INSTALADOR na
+#    listagem (409 -> join), que e exatamente o caminho certo.
+#
+# Continua sobrescrevivel pelo ambiente, para quem fizer um fork e quiser a
+# propria listagem.
+ENV AGENT_ID=checkpoint
 
 # O reporter do Agent Index — o ÚNICO requisito obrigatório do hackathon.
 #
@@ -62,6 +81,12 @@ RUN set -eu; \
 COPY image/s6-overlay/ /etc/s6-overlay/
 RUN chmod 0755 /etc/s6-overlay/scripts/latch-probe.sh /etc/s6-overlay/s6-rc.d/latch-probe/up /etc/s6-overlay/scripts/checkpoint-crons.sh /etc/s6-overlay/s6-rc.d/checkpoint-crons/up /etc/s6-overlay/scripts/net-watchdog.sh /etc/s6-overlay/s6-rc.d/net-watchdog/run
 RUN chmod 0755 /etc/s6-overlay/s6-rc.d/agent-index/run
+
+# O pin do modelo. Servico, e nao cont-init, porque o `plow-init` reescreve o
+# config.yaml a partir do seed DEPOIS do legacy-cont-init -- a primeira versao
+# disto rodou cedo demais, nao mudou nada e nao imprimiu nada, e o agente subiu
+# no modelo da base assim mesmo. O `hermes-gateway` depende dele.
+RUN chmod 0755 /etc/s6-overlay/scripts/checkpoint-model.sh /etc/s6-overlay/s6-rc.d/checkpoint-model/up
 
 # As skills deste agente. Ficam em /opt/hermes/skills, fora de toda home, para
 # que uma home montada por bind ainda as receba e uma atualização de imagem
