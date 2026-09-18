@@ -67,7 +67,7 @@ ENV AGENT_ID=checkpoint
 # agente le e ninguem executa. Longe de HERMES_HOME/scripts, que e o unico lugar
 # gravavel de onde o runtime roda coisa sozinho. O dono vira `hermes` no boot
 # (05-checkpoint-config), que ja trata o caso do volume montado por cima.
-RUN mkdir -p /var/lib/checkpoint-work/publico  && chmod 0750 /var/lib/checkpoint-work
+RUN mkdir -p /var/lib/checkpoint-work/publico  && chown -R hermes:hermes /var/lib/checkpoint-work  && chmod 0750 /var/lib/checkpoint-work
 
 # O reporter do Agent Index — o ÚNICO requisito obrigatório do hackathon.
 #
