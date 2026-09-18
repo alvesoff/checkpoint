@@ -86,19 +86,8 @@ def carregar_revisor():
     return mod
 
 
-def segredos_no_diff(caminho: str, base: str) -> list[dict] | None:
-    """Os segredos nas linhas ADICIONADAS deste ramo. `None` = não deu para saber.
-
-    `None` e `[]` são coisas diferentes e o chamador trata diferente: lista
-    vazia libera o push, "não deu para saber" o interrompe. Uma trava que falha
-    aberta não é trava.
-    """
-    rev = carregar_revisor()
-    if rev is None:
-        return None
-    codigo, diff = git("diff", f"origin/{base}...HEAD", cwd=caminho)
-    if codigo != 0:
-        return None
+def varrer(rev, diff: str) -> list[dict]:
+    """Os segredos nas linhas ADICIONADAS de um diff qualquer."""
     achados = []
     for arquivo, linhas in rev.por_arquivo(diff).items():
         if rev.NOME_PROIBIDO.search(arquivo) and not rev.NOME_LIBERADO.search(arquivo):
@@ -111,6 +100,34 @@ def segredos_no_diff(caminho: str, base: str) -> list[dict] | None:
                     achados.append({"arquivo": arquivo, "tipo": rotulo})
                     break
     return achados
+
+
+def segredos(caminho: str, base: str, so_o_indice: bool) -> list[dict] | None:
+    """Segredo no que vai subir. `None` = não deu para varrer, e isso interrompe.
+
+    `None` e `[]` são coisas diferentes, e o chamador trata diferente: lista
+    vazia libera, "não deu para saber" barra. Trava que falha aberta não é trava.
+
+    Duas passadas, e a segunda é a que importa:
+
+      * antes de commitar, o índice — para o segredo nem entrar num commit;
+      * antes de empurrar, **o patch de CADA commit** do ramo, e não o diff
+        líquido contra a base. Um segredo adicionado num commit e apagado no
+        seguinte **some do diff líquido e continua no histórico** — que é
+        exatamente o que fica caro depois do push. Descoberto testando: a
+        primeira versão olhava só o líquido e teria empurrado.
+    """
+    rev = carregar_revisor()
+    if rev is None:
+        return None
+    if so_o_indice:
+        codigo, diff = git("diff", "--cached", cwd=caminho)
+    else:
+        # -p com --no-merges: o patch de cada commit, um atrás do outro.
+        codigo, diff = git("log", "-p", "--no-merges", f"origin/{base}..HEAD", cwd=caminho)
+    if codigo != 0:
+        return None
+    return varrer(rev, diff)
 
 
 def api(caminho_api: str, corpo: dict, tok: str) -> tuple[int, dict]:
@@ -193,7 +210,21 @@ def main() -> int:
                          ensure_ascii=False))
         return 1
 
+    # Antes de commitar, não depois: um segredo que entra num commit fica no
+    # ramo mesmo se o arquivo for apagado em seguida, e aí a cópia inteira tem
+    # que ser jogada fora. Barato agora, caro daqui a um commit.
     if git("diff", "--cached", "--name-only", cwd=caminho)[1].strip():
+        achados = segredos(caminho, base, so_o_indice=True)
+        if achados is None:
+            print(json.dumps({"erro": "não consegui varrer o que ia para o commit"},
+                             ensure_ascii=False))
+            return 1
+        if achados:
+            print(json.dumps({
+                "erro": "há segredo no que ia para o commit; nada foi commitado nem empurrado",
+                "achados": achados[:10],
+            }, ensure_ascii=False, indent=2))
+            return 1
         if git("commit", "--quiet", "-m", titulo, cwd=caminho)[0] != 0:
             print(json.dumps({"erro": "o commit falhou"}, ensure_ascii=False))
             return 1
@@ -207,10 +238,13 @@ def main() -> int:
         }, ensure_ascii=False))
         return 1
 
-    achados = segredos_no_diff(caminho, base)
+    # Segunda passada, contra o patch de CADA commit do ramo. É a que pega o
+    # segredo que entrou num commit e saiu no seguinte — invisível no diff
+    # líquido, e presente para sempre no histórico que o push publica.
+    achados = segredos(caminho, base, so_o_indice=False)
     if achados is None:
         print(json.dumps({
-            "erro": "não consegui varrer o diff atrás de segredo, então não empurro",
+            "erro": "não consegui varrer o histórico atrás de segredo, então não empurro",
             "por_que": "depois do push o segredo fica no histórico mesmo apagado depois",
         }, ensure_ascii=False))
         return 1
