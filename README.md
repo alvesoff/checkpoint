@@ -125,6 +125,33 @@ answer. Nothing is mounted without a yes.
 Outlook/M365 and Apple all publish. Treat that address like a password, because anyone holding it
 reads your calendar without logging in.
 
+## Optional: let it open pull requests
+
+**Off by default, and it does not change the read-only rule.** With this on, the agent clones the
+repository **from the remote** into a workspace of its own, edits there, and opens a **draft pull
+request** for you to review. Your folder stays mounted read-only and untouched — it writes to its
+copy, never to yours.
+
+Two lines in `.env`, then restart:
+
+```
+CONTRIB_REPOS=you/your-repo,you/another-repo
+CHECKPOINT_GH_TOKEN=github_pat_...
+```
+
+Use a **fine-grained** token limited to exactly those repositories, with `Contents: read/write` and
+`Pull requests: read/write`. Nothing else. A classic token with `repo` scope hands the agent write
+access to every repository you own, and this one runs scheduled jobs unattended.
+
+`CONTRIB_REPOS` is the gate, and the script never reads it from the environment: boot copies it to a
+root-owned file under `/opt`, because a turn of the agent can invoke a script with any environment
+it likes — and a gate you can talk your way past is not a gate. Changing the list means editing
+`.env` and restarting, which is something you do on your machine, not something a conversation does.
+
+What it refuses, by construction: pushing to your default branch, pushing a diff that contains a
+secret (the same scan the pre-commit review uses), more than 40 changed files, and `--force` in any
+form. Every change becomes a PR, and every PR is a draft.
+
 ## Usage reporting
 
 This image carries a reporter that publishes token usage to the
@@ -197,6 +224,7 @@ getting a stray carriage return in its shebang and parking the boot with an erro
 | `skills/todo/` | The demand list that grows from project state and closes itself |
 | `image/s6-overlay/` | Boot services: the usage reporter, the Latch probe, the routine registration, the network watchdog |
 | `install.sh` | The one-command install |
+| `skills/contribute/` | Cloning to its own workspace, and the draft pull request |
 | `install.ps1` | The same install from PowerShell: finds the bash Git for Windows ships, gets Docker running, and hands `install.sh` to it |
 
 ## Building the image

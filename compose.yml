@@ -15,6 +15,19 @@ services:
       # para qualquer pessoa fora do meridiano de Greenwich — e o horário do
       # cutucão automático também. Ajuste no .env para o seu fuso.
       TZ: "${TZ:-UTC}"
+      # OPCIONAL, e desligado por padrão. Liga a skill `contribute`: o agente
+      # trabalha numa cópia própria e abre um Pull Request para você revisar.
+      # Vazio nos dois = a capacidade não existe nesta instalação, e o agente
+      # diz isso em vez de tentar.
+      #
+      # CONTRIB_REPOS é a lista do que ele pode tocar, `dono/repo` separados por
+      # vírgula. Não é lida do ambiente pelo script: o boot a copia para um
+      # arquivo root-owned em /opt, porque um turno do agente consegue chamar um
+      # script com o ambiente que quiser — e aí a lista deixaria de ser trava.
+      CONTRIB_REPOS: "${CONTRIB_REPOS:-}"
+      # Um PAT do GitHub. Use um FINE-GRAINED limitado aos repositórios acima,
+      # com Contents: read/write e Pull requests: read/write. Nada além disso.
+      CHECKPOINT_GH_TOKEN: "${CHECKPOINT_GH_TOKEN:-}"
     volumes:
       # `.host`, não o caminho que o agente lê: um bind carrega a dona e o modo
       # desta máquina, e a imagem copia o arquivo para o lugar certo como root.
@@ -30,6 +43,11 @@ services:
       - ${CODE_DIR:-./projects}:${CODE_TARGET:-/projects}:ro
       # A home do agente, preservada entre up/down para manter sessões e setup.
       - agent-home:/var/lib/hermes
+      # Onde a skill `contribute` clona e edita. Volume separado, e FORA da home
+      # de propósito: aqui entra código clonado de fora, que o agente escreve e
+      # ninguém executa. Longe de $HERMES_HOME/scripts, que é o único lugar
+      # gravável de onde o runtime roda coisa sozinho.
+      - agent-work:/var/lib/checkpoint-work
     # Sem isto o agente nao volta sozinho depois que a maquina reinicia: fica
     # morto e em silencio ate alguem rodar `docker compose up` de novo, e nada
     # no celular do dono diz que ele parou. `unless-stopped`, nao `always`,
@@ -41,3 +59,4 @@ services:
 
 volumes:
   agent-home:
+  agent-work:

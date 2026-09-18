@@ -25,14 +25,71 @@ set -eu
 CONFIG=/var/lib/hermes/config.yaml
 
 [ -f "$CONFIG" ] || exit 0
-grep -q '^[[:space:]]*wrap_response:' "$CONFIG" && exit 0
 
 # Insere a chave dentro da seção `cron:` que a imagem base já escreve. Se um dia
 # ela deixar de existir, cria a seção no fim — nunca falha o boot por isso.
-if grep -q '^cron:' "$CONFIG"; then
-  sed -i 's/^cron:$/cron:\n  wrap_response: false/' "$CONFIG"
-else
-  printf '\ncron:\n  wrap_response: false\n' >> "$CONFIG"
+if ! grep -q '^[[:space:]]*wrap_response:' "$CONFIG"; then
+  if grep -q '^cron:' "$CONFIG"; then
+    sed -i 's/^cron:$/cron:\n  wrap_response: false/' "$CONFIG"
+  else
+    printf '\ncron:\n  wrap_response: false\n' >> "$CONFIG"
+  fi
+  echo "[checkpoint] cron.wrap_response=false — o aviso chega sem envelope"
 fi
 
-echo "[checkpoint] cron.wrap_response=false — o aviso chega sem envelope"
+# ── O aviso de gateway reiniciando ───────────────────────────────────────────
+#
+# `docker compose up --build` derruba o gateway, e a plataforma manda ao dono um
+# "Gateway shutting down — your current task will be interrupted". Em 14/09 duas
+# correções de texto separadas por nove minutos viraram dois toques no celular
+# dele às 22h30, sem contexto nenhum: quem recebe acha que quebrou.
+#
+# `gateway/config.py` declara `gateway_restart_notification: bool = True`, e é
+# chave de plataforma — mora dentro de `platforms.<plataforma>`, não na raiz.
+#
+# Isto foi dado como corrigido em 15/09 e nunca tinha sido escrito: não existia
+# nem no repositório nem no config vivo. Conferido em 16/09.
+#
+# A regra de juntar mudanças num rebuild só continua valendo: desligado, o custo
+# deixa de ser um toque no celular e passa a ser o tique de cron que um restart
+# mal cronometrado pode perder.
+if ! grep -q '^[[:space:]]*gateway_restart_notification:' "$CONFIG"; then
+  if grep -q '^  plow_chat:$' "$CONFIG"; then
+    sed -i 's/^  plow_chat:$/  plow_chat:\n    gateway_restart_notification: false/' "$CONFIG"
+    echo "[checkpoint] gateway_restart_notification=false — rebuild não toca o celular do dono"
+  fi
+fi
+
+# ── A trava da skill `contribute` ────────────────────────────────────────────
+#
+# Quais repositórios o agente pode escrever. Vem do `.env` de quem instalou,
+# porque cada instalação tem os seus — mas o script NUNCA lê essa lista do
+# ambiente, e a diferença é a segurança inteira: um turno do agente consegue
+# chamar um script com o ambiente que ele quiser (`CONTRIB_REPOS=qualquer-coisa
+# python3 ...`), e aí a lista deixaria de ser trava e viraria sugestão.
+#
+# Então o boot, que é root, copia o valor para /opt — que o agente lê e não
+# escreve. Mudar a lista passa a exigir editar o `.env` e reiniciar, que é uma
+# ação do dono na máquina dele, não um turno de conversa.
+#
+# Arquivo sempre criado, mesmo vazio: ausente e vazio querem dizer a mesma coisa
+# ("nenhum repositório liberado"), e um só caminho de leitura tem um só jeito de
+# falhar.
+mkdir -p /opt/checkpoint
+LIBERADOS=/run/s6/container_environment/CONTRIB_REPOS
+if [ -f "$LIBERADOS" ]; then
+  tr ',' '\n' < "$LIBERADOS" | sed 's/[[:space:]]//g' | sed '/^$/d' > /opt/checkpoint/repos-liberados
+else
+  : > /opt/checkpoint/repos-liberados
+fi
+chmod 0644 /opt/checkpoint/repos-liberados
+QUANTOS=$(wc -l < /opt/checkpoint/repos-liberados | tr -d ' ')
+echo "[checkpoint] contribute: $QUANTOS repositório(s) liberado(s) para Pull Request"
+
+# A área onde a skill clona. Volume novo nasce root:root, e o agente não
+# escreveria nele — a falha apareceria só na primeira vez que alguém pedisse
+# uma melhoria, que é tarde.
+if [ -d /var/lib/checkpoint-work ]; then
+  chown hermes:hermes /var/lib/checkpoint-work
+  chmod 0750 /var/lib/checkpoint-work
+fi
