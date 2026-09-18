@@ -5,3 +5,4 @@ projects/
 __pycache__/
 *.pyc
 compose.override.yml
+tools/plow-agents/

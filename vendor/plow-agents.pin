@@ -9,4 +9,4 @@
 #
 # Escape consciente, para quando a CLI mudar e este pin ficar velho antes de
 # alguém atualizá-lo:  PLOW_AGENTS_REF=main ./install.sh
-sha=8ce907e220ab67018d6857e8054a41eed4ecd279
+sha=66b03c6c3cae48a7519348f54777c0fea46be446
