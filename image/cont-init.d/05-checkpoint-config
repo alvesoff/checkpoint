@@ -116,4 +116,11 @@ echo "[checkpoint] contribute: $QUANTOS repositório(s) liberado(s) para Pull Re
 if [ -d /var/lib/checkpoint-work ]; then
   chown hermes:hermes /var/lib/checkpoint-work
   chmod 0750 /var/lib/checkpoint-work
+  # A subpasta dos clones publicos precisa do mesmo tratamento, e por um motivo
+  # que nao aparece aqui: quando ha volume montado, ele nasce vazio e cobre o
+  # que a imagem criou, entao a pasta da imagem nao existe mais neste caminho.
+  # Sem isto o clone falha so na instalacao com volume -- e passa na nuvem, que
+  # e onde se testaria.
+  mkdir -p /var/lib/checkpoint-work/publico
+  chown hermes:hermes /var/lib/checkpoint-work/publico
 fi
