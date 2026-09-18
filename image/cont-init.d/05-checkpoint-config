@@ -60,6 +60,30 @@ if ! grep -q '^[[:space:]]*gateway_restart_notification:' "$CONFIG"; then
   fi
 fi
 
+# ── O limite de truncagem do arquivo de contexto ─────────────────────────────
+#
+# O runtime corta o SOUL.md quando ele passa de um limite de CARACTERES, e o
+# corte nao e no fim: `agent/prompt_builder.py` guarda 70% da cabeca e 20% da
+# cauda e JOGA FORA O MEIO. Em 18/09 a persona chegou a 20240 caracteres contra
+# um limite de 20000, e os 2240 descartados eram justamente as duas ressalvas
+# mais caras deste projeto — a que proibe repetir uma recusa errada e a que diz
+# que a lista de demandas e do agente. Ou seja: a persona cresceu e o runtime
+# apagou em silencio a parte que impede o agente de recusar trabalho.
+#
+# Cortar texto para caber e escolher qual ressalva morre, que e o proprio
+# defeito. Entao o limite e fixado.
+#
+# Chave de RAIZ, ao contrario de `cron.wrap_response` e de
+# `platforms.plow_chat.*` — por isso a ancora `^context_file_max_chars:` na
+# coluna 0. `_get_context_file_max_chars` prefere o valor explicito ao limite
+# dinamico, que so vale quando a janela do modelo e conhecida.
+#
+# Custo: mais token no prefixo cacheado de cada turno. E a persona inteira.
+if ! grep -q '^context_file_max_chars:' "$CONFIG"; then
+  printf '\ncontext_file_max_chars: 40000\n' >> "$CONFIG"
+  echo "[checkpoint] context_file_max_chars=40000 — a persona chega inteira"
+fi
+
 # ── A trava da skill `contribute` ────────────────────────────────────────────
 #
 # Quais repositórios o agente pode escrever. Vem do `.env` de quem instalou,
