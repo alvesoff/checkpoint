@@ -56,6 +56,19 @@ RUN mkdir -p /opt/checkpoint  && printf '%s' "$CHECKPOINT_REV" > /opt/checkpoint
 # propria listagem.
 ENV AGENT_ID=checkpoint
 
+# A area onde o agente clona repositorio publico para ler.
+#
+# Criada AQUI, e nao so pelo compose, porque na nuvem do Plow nao ha compose: o
+# `deploy` manda `{name, line_uid, provider}` e nada mais, entao nenhum volume
+# nomeado existe la. Sem esta pasta o unico caminho que a nuvem tem para ver
+# codigo tambem nao existiria.
+#
+# Fora de $HERMES_HOME de proposito: aqui entra codigo clonado de fora, que o
+# agente le e ninguem executa. Longe de HERMES_HOME/scripts, que e o unico lugar
+# gravavel de onde o runtime roda coisa sozinho. O dono vira `hermes` no boot
+# (05-checkpoint-config), que ja trata o caso do volume montado por cima.
+RUN mkdir -p /var/lib/checkpoint-work/publico  && chmod 0750 /var/lib/checkpoint-work
+
 # O reporter do Agent Index — o ÚNICO requisito obrigatório do hackathon.
 #
 # Buscado no build em vez de commitado porque plow-pbc/agent-index-client é dono
