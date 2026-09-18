@@ -94,6 +94,9 @@ RUN printf '[safe]\n\tdirectory = *\n' > /etc/gitconfig && chmod 0644 /etc/gitco
 # edite um arquivo em $HERMES_HOME/skills congela aquela skill para sempre: o
 # sync do runtime passa a pular o diretorio inteiro e nenhuma correcao deste
 # repositorio chega mais nesta instalacao.
+# A promocao da credencial. Antes da 04 de proposito: o plow-init desiste
+# sessenta segundos depois do boot, e um cont-init que corre tarde chega tarde.
+COPY image/cont-init.d/03-plow-credential /etc/cont-init.d/03-plow-credential
 COPY image/cont-init.d/04-checkpoint-skills /etc/cont-init.d/04-checkpoint-skills
 COPY image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-config
 
@@ -103,6 +106,7 @@ COPY image/cont-init.d/05-checkpoint-config /etc/cont-init.d/05-checkpoint-confi
 COPY image/cont-init.d/06-refresh-persona /etc/cont-init.d/06-refresh-persona
 # Os tres juntos, numa camada so. cont-init nao executa o que nao e executavel,
 # e a falha seria silenciosa: o boot segue e a etapa simplesmente nao acontece.
-RUN chmod 0755 /etc/cont-init.d/04-checkpoint-skills \
+RUN chmod 0755 /etc/cont-init.d/03-plow-credential \
+               /etc/cont-init.d/04-checkpoint-skills \
                /etc/cont-init.d/05-checkpoint-config \
                /etc/cont-init.d/06-refresh-persona
