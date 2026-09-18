@@ -85,12 +85,13 @@ The installer says which step it stopped on. Two that come up:
 | Everything not yet committed | A secret, a `.env`, a `console.log` about to enter the history — the last moment the damage is free |
 | All of the above, plus your calendar, once in the morning and once at night | What fits today, and at night what is still loose plus the state of the project your first meeting tomorrow is about |
 
-Five scheduled routines register themselves on first boot, and they split into two kinds.
+Seven scheduled routines register themselves on first boot, and they split into two kinds.
 
-**Three watch for change and stay quiet otherwise.** Hourly: a project **crosses** an idle threshold
-— two days with unsaved work, then four, then a week. Every six hours: a dependency changes state, or
-a new vulnerability shows up in one you declare. Every twelve hours: documentation stops matching the
-code. Nothing changed means nothing sent and no tokens spent.
+**Five watch for change and stay quiet otherwise.** Hourly: a project **crosses** an idle threshold
+— two days with unsaved work, then four, then a week. Every four hours: a secret turns up in a file
+git is not tracking. Every six hours: a dependency changes state, or a new vulnerability shows up in
+one you declare. Every twelve hours: documentation stops matching the code. Once a day: this install
+falls behind the public repository. Nothing changed means nothing sent and no tokens spent.
 
 **Two speak on schedule**, 8am and 6pm on weekdays, and that is the point of them — the morning one
 opens with the thing nobody is going to chase you about today, and the evening one crosses tomorrow's
@@ -289,7 +290,7 @@ was *published*, not that it *arrived* — `image/cont-init.d/06-refresh-persona
 that pin on every boot. If you remove it, persona edits stop reaching open conversations.
 
 **Editing a bundled skill in the agent's home does not survive a restart.** A boot-time step
-reimposes the nine skills of this agent from the image, because the runtime's skill sync skips any
+reimposes the skills of this agent from the image, because the runtime's skill sync skips any
 directory whose copy in the home differs — which quietly freezes that skill against every future
 fix. The trade is deliberate: customise these skills in the repo and rebuild, not in
 `$HERMES_HOME/skills`.
