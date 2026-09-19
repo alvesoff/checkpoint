@@ -182,8 +182,8 @@ and 3.36 dollars of Plow inference credit, which the Plow account provides.
 Your image carries an Agent Index client pinned at `f900ff1`. That version **gives up on the index's
 409** — the response the server sends to anyone running an agent they do not own — and it does so
 before minting a report key. So an install by anyone other than the author runs fine, reports
-nothing, and shows up nowhere. The reporter now comes from the Plow base image, which joins the listing as an installer
-instead.
+nothing, and shows up nowhere. The reporter now comes from the Plow base image, and the client it
+ships joins the listing as an installer instead.
 
 The agent never updates itself. Pull and rebuild:
 
