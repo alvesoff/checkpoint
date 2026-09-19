@@ -1,6 +1,6 @@
 # A CLI de agentes do Plow, pinada.
 #
-# Mesma razão do client.pin ao lado, e com mais peso: esta é a ferramenta que
+# Mesma razão do pin por digest da base, e com mais peso: esta é a ferramenta que
 # faz o `mint`, ou seja, a que CRIA a credencial do agente. Clonar o HEAD de um
 # repositório de terceiro e executá-lo substitui código não revisado debaixo de
 # quem segura essa credencial, e sem deixar rastro de qual versão rodou.

@@ -514,7 +514,7 @@ cd "$DESTINO"
 
 # A CLI do Plow e executada aqui e e ela que faz o `mint` -- clonar o HEAD de
 # um repositorio de terceiro e rodar o que vier e substituir codigo nao revisado
-# debaixo de quem segura a credencial. Mesmo padrao do vendor/client.pin.
+# debaixo de quem segura a credencial. Mesmo padrao do pin por digest da base.
 # Esta era a linha que encerrava a instalação com "código 1" e mais nada, logo
 # depois de dizer que não conseguiu atualizar a cópia local.
 #
