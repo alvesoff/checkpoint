@@ -5,21 +5,15 @@
 # fixada também por digest: um agente que segura credencial viva não pode ter
 # código trocado por baixo dele por uma tag que se move.
 #
-# Atualizada em 18/09 para a mais recente do registro (base-0eba9f29, de
-# 18/09 13:05Z), porque o Daniel Delattre pediu a base mais nova como condicao
-# do deploy de um clique. Ela substitui a base-51f83158 que o PR #1 dele tinha
-# indicado de manha -- a instrucao nova e dele e vale sobre a antiga.
-#
-# O que essa base traz e que importa aqui: ela bumpa o pin do cliente do Agent
-# Index para 87901f8, que ENTRA COMO INSTALADOR no 409 em vez de desistir. O pin
-# antigo fazia toda instalacao de terceiro nunca reportar nada. Nos bumpamos o
-# nosso `vendor/client.pin` junto, que e o que a nossa imagem realmente busca.
+# Atualizada em 19/09 para a base-ef001937. Ela ja traz o reporter do Agent
+# Index (cliente pinado + servico s6 `agent-index`), entao este repositorio
+# nao carrega mais copia propria: o reporter e o da base, e sobe junto com ela.
 #
 # O custo: ela semeia `z-ai/glm-5.2` como modelo padrao -- metade do preco por
 # token e, pela medicao da propria Plow, 34 contra 38 do Sonnet no Artificial
 # Analysis. O modelo passa a ser FIXADO pelo `05-checkpoint-config`, para que a
 # base nao decida sozinha o que o agente roda enquanto os hosts o testam.
-FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-0eba9f29edbcffeb846064bbc718b54d3d3e0e47@sha256:14a8307bee7d40c926be4ff7c599d9e973c3d0213099072f0015dd21b61f4594
+FROM public.ecr.aws/e1h7x4a2/plow-cloud-agents:base-ef0019372ff8bca593611b31ebd2e08f9f1458ff@sha256:a8a2f97ad78b8192d80a984dce81d3bf5a9a883d18cb7b677704913a09b56aee
 
 # Identidade. O plow-init compõe o SOUL.md a cada boot como "persona da base +
 # este arquivo", então nada é copiado direto para /var/lib/hermes/SOUL.md.
@@ -69,31 +63,9 @@ ENV AGENT_ID=checkpoint
 # (05-checkpoint-config), que ja trata o caso do volume montado por cima.
 RUN mkdir -p /var/lib/checkpoint-work/publico  && chown -R hermes:hermes /var/lib/checkpoint-work  && chmod 0750 /var/lib/checkpoint-work
 
-# O reporter do Agent Index — o ÚNICO requisito obrigatório do hackathon.
-#
-# Buscado no build em vez de commitado porque plow-pbc/agent-index-client é dono
-# do arquivo; pinado por sha em vez de `main` porque isto roda dentro de um
-# agente que segura credencial viva, e uma referência móvel substituiria código
-# não revisado embaixo dele. O sha256 é a segunda metade da garantia: um sha na
-# URL só vale o quanto vale o host que serve a URL.
-#
-# Root-owned sob /opt/plow, fora da home: o que o supervisor roda sozinho não
-# pode ser um arquivo que um turno do agente consegue reescrever.
-COPY vendor/client.pin /opt/plow/agent-index-client.pin
-RUN set -eu; \
-    sha="$(sed -n 's/^sha=//p' /opt/plow/agent-index-client.pin)"; \
-    want="$(sed -n 's/^sha256=//p' /opt/plow/agent-index-client.pin)"; \
-    path="$(sed -n 's/^path=//p' /opt/plow/agent-index-client.pin)"; \
-    curl -fsS --max-time 60 -o /opt/plow/agent-index-client.py \
-      "https://raw.githubusercontent.com/plow-pbc/agent-index-client/${sha}/${path}"; \
-    got="$(sha256sum /opt/plow/agent-index-client.py | cut -d' ' -f1)"; \
-    [ "$got" = "$want" ] || { echo "agent-index client is $got, pin says $want" >&2; exit 1; }; \
-    chmod 0644 /opt/plow/agent-index-client.py
-
-# O serviço supervisionado que chama o reporter a cada 5 minutos.
+# Os serviços supervisionados deste agente. O do Agent Index NÃO está aqui: vem da base.
 COPY image/s6-overlay/ /etc/s6-overlay/
 RUN chmod 0755 /etc/s6-overlay/scripts/latch-probe.sh /etc/s6-overlay/s6-rc.d/latch-probe/up /etc/s6-overlay/scripts/checkpoint-crons.sh /etc/s6-overlay/s6-rc.d/checkpoint-crons/up /etc/s6-overlay/scripts/net-watchdog.sh /etc/s6-overlay/s6-rc.d/net-watchdog/run
-RUN chmod 0755 /etc/s6-overlay/s6-rc.d/agent-index/run
 
 # O pin do modelo. Servico, e nao cont-init, porque o `plow-init` reescreve o
 # config.yaml a partir do seed DEPOIS do legacy-cont-init -- a primeira versao
