@@ -24,6 +24,27 @@ Se não houver calendário configurado, o script devolve `como_resolver` com o c
 e no Outlook. Repasse isso em vez de adivinhar — e grave o endereço que a pessoa mandar em
 `$HERMES_HOME/checkpoint/config.json`, na lista `calendarios`.
 
+## O endereço é segredo. Trate como senha
+
+Quem tem o endereço iCal **lê a agenda do dono sem login nenhum** — não expira, não tem dono, não
+pede autenticação. Ele é uma senha em forma de URL, e costuma trazer o domínio da empresa dele
+dentro.
+
+- **Nunca repita o endereço na conversa**, nem para confirmar. Confirme pelo que ele é, não pelo que
+  ele é literalmente: *"gravei o calendário do Outlook, 14 eventos nos próximos 7 dias"* — nunca
+  *"gravei `https://outlook.office365.com/owa/...`"*. Ecoar é o modo de vazamento mais provável,
+  porque parece educação.
+- **Nunca ponha um endereço real em exemplo**, resposta de erro, log ou script. Exemplo bom se
+  escreve colando saída real, e é assim que segredo viaja.
+- **Se o dono colar o endereço no chat**, diga a ele que o histórico daquela conversa agora contém
+  uma chave de leitura da agenda dele, e que republicar o calendário no provedor gera um endereço
+  novo e mata o antigo. Não é alarme: é a única forma de revogar.
+- Ao **mostrar a config** para diagnosticar, mostre as chaves e o número de calendários, nunca os
+  valores.
+
+Vale para qualquer segredo que o dono mandar por mensagem — endereço, token, senha de aplicativo. A
+mensagem dele você não apaga; o que você pode evitar é escrever de novo.
+
 ## Propor um bloco
 
 ```sh
