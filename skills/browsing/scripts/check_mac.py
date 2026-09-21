@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Tem um Mac com Plow Latch do outro lado, ou só o navegador do container?
+"""Tem a maquina do dono com Plow Latch do outro lado, ou so o navegador do container?
 
 Existe porque a plataforma injeta a descrição do Latch na persona de TODO agente,
-mesmo quando não há Mac nenhum conectado. Sem esta checagem o agente promete
-controlar um Mac que não existe — e promessa falsa no primeiro minuto é o que
+mesmo quando nao ha maquina nenhuma conectada. Sem esta checagem o agente promete
+controlar uma maquina que nao existe — e promessa falsa no primeiro minuto é o que
 faz desinstalar.
 
-A resposta é factual e vem do relay: 503 "Device is not connected" quando não há
-Mac; a lista de ferramentas quando há.
+A resposta e factual e vem do relay: 503 "Device is not connected" quando nao ha
+maquina; a lista de ferramentas quando ha.
+
+A maquina do dono nao e necessariamente um Mac: o Latch tem versao de Windows e
+de Linux, e as descricoes que o relay devolve ja vem na plataforma certa. Por
+isso a saida fala em "maquina", nunca em "Mac" -- um agente que le "Mac" aqui e
+recebe ferramentas dizendo "this Windows PC" tem duas verdades no mesmo prompt,
+e o desfecho conhecido e ele recusar.
 """
 
 from __future__ import annotations
@@ -48,7 +54,7 @@ URL_GUARDADA = "/opt/checkpoint/latch-url"
 
 
 def url_do_relay() -> tuple[str, bool]:
-    """A URL e se ela veio do ambiente (Mac havia no boot) ou do arquivo."""
+    """A URL e se ela veio do ambiente (havia maquina no boot) ou do arquivo."""
     do_ambiente = ler("PLOW_MCP_URL")
     if do_ambiente:
         return do_ambiente, True
@@ -63,7 +69,7 @@ def main() -> int:
     url, veio_do_ambiente = url_do_relay()
     token = ler("PLOW_AGENT_TOKEN")
     if not url or not token:
-        print(json.dumps({"mac": False, "motivo": "esta instalação não tem relay configurado"},
+        print(json.dumps({"maquina": False, "motivo": "esta instalacao nao tem relay configurado"},
                          ensure_ascii=False))
         return 0
 
@@ -82,13 +88,13 @@ def main() -> int:
         with urllib.request.urlopen(pedido, timeout=20) as resposta:
             texto = resposta.read().decode("utf-8", "ignore")
     except urllib.error.HTTPError as erro:
-        # 503 "Device is not connected" é a resposta normal de quem não tem Mac,
-        # não uma falha: é a informação que viemos buscar.
-        motivo = "nenhum Mac conectado" if erro.code == 503 else f"relay respondeu {erro.code}"
-        print(json.dumps({"mac": False, "motivo": motivo}, ensure_ascii=False))
+        # 503 "Device is not connected" e a resposta normal de quem nao tem
+        # maquina ligada, nao uma falha: e a informacao que viemos buscar.
+        motivo = "nenhuma maquina do dono conectada" if erro.code == 503 else f"relay respondeu {erro.code}"
+        print(json.dumps({"maquina": False, "motivo": motivo}, ensure_ascii=False))
         return 0
     except Exception as erro:  # rede, timeout, DNS
-        print(json.dumps({"mac": False, "motivo": f"relay inacessível ({type(erro).__name__})"},
+        print(json.dumps({"maquina": False, "motivo": f"relay inacessivel ({type(erro).__name__})"},
                          ensure_ascii=False))
         return 0
 
@@ -100,20 +106,27 @@ def main() -> int:
     try:
         ferramentas = [t["name"] for t in json.loads(texto).get("result", {}).get("tools", [])]
     except (ValueError, TypeError, KeyError):
-        print(json.dumps({"mac": False, "motivo": "relay respondeu algo que não é lista de ferramentas"},
+        print(json.dumps({"maquina": False, "motivo": "relay respondeu algo que nao e lista de ferramentas"},
                          ensure_ascii=False))
         return 0
 
-    saida = {"mac": bool(ferramentas), "ferramentas": ferramentas}
+    saida = {"maquina": bool(ferramentas), "ferramentas": ferramentas}
+    if ferramentas:
+        # `plow_run_applescript` so existe no Latch de macOS. A ausencia dele
+        # numa lista que veio cheia e a unica evidencia de plataforma que este
+        # script tem -- e basta para o agente nao oferecer AppleScript a quem
+        # esta no Windows, nem `where`/`powershell` a quem esta no Mac.
+        e_mac = "plow_run_applescript" in ferramentas
+        saida["plataforma"] = "macOS" if e_mac else "Windows ou Linux"
     if ferramentas and not veio_do_ambiente:
-        # O Mac existe agora, mas nao existia quando o container subiu: o probe
-        # do boot tirou a PLOW_MCP_URL do ambiente e o gateway nunca carregou as
-        # ferramentas do Latch nesta execucao. Dizer que ha Mac sem dizer isto
-        # faria o agente prometer uma acao que ele nao consegue executar.
+        # A maquina existe agora, mas nao existia quando o container subiu: o
+        # probe do boot tirou a PLOW_MCP_URL do ambiente e o gateway nunca
+        # carregou as ferramentas do Latch nesta execucao. Dizer que ha maquina
+        # sem dizer isto faria o agente prometer uma acao que nao consegue.
         saida["conectou_depois_do_boot"] = True
-        saida["aviso"] = ("o Mac esta conectado agora, mas ele nao estava quando este container subiu, "
-                          "entao as ferramentas do Latch nao estao carregadas nesta sessao. "
-                          "Diga isso ao dono e ofereca reiniciar o container para passar a usar o Mac.")
+        saida["aviso"] = ("a maquina do dono esta conectada agora, mas nao estava quando este container "
+                          "subiu, entao as ferramentas do Latch nao estao carregadas nesta sessao. "
+                          "Diga isso ao dono e ofereca reiniciar o container para passar a usa-la.")
     print(json.dumps(saida, ensure_ascii=False))
     return 0
 
