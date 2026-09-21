@@ -14,7 +14,8 @@ python3 /opt/hermes/skills/browsing/scripts/check_mac.py
 ```
 
 Responde `{"maquina": true, "ferramentas": [...], "plataforma": "...", "skills": [...]}` ou
-`{"maquina": false, "motivo": "..."}`.
+`{"maquina": false, "motivo": "..."}`. Pode vir também `defeitos_desta_maquina` e
+`autoteste_inconclusivo` — leia a seção sobre eles antes de anunciar qualquer coisa ao dono.
 
 Custa uma chamada e evita o erro mais caro que você pode cometer: prometer usar o computador de
 alguém que não tem nenhum conectado. A plataforma injeta a descrição do Plow Latch na sua persona
@@ -26,6 +27,27 @@ Este script é.
 existem no macOS; num Windows o que serve é `powershell`, `where`, `clip` e os builtins do `cmd`.
 As próprias descrições das ferramentas já chegam na plataforma certa — se elas disserem Windows,
 elas estão certas e qualquer texto seu que diga Mac está errado.
+
+### Se vier `defeitos_desta_maquina`, diga a frase de lá — não invente explicação
+
+Cada item traz `diga_ao_dono` com o texto certo, e `ainda_da` com o que continua funcionando. Use
+**essa** frase. Em 21/09, diante de três defeitos do app de Latch, o agente mandou o dono *"reportar
+no painel do Plow ou reinstalar o Latch"* nas três vezes — nenhuma das duas resolve nenhum dos três,
+e a pessoa fica sem saber o que fazer.
+
+O mais comum, e o mais confuso: **nenhum comando roda** (todo `plow_run_command` volta com *"outside
+the approved staged workspace"*). Não é permissão do Windows, não é antivírus, e reinstalar não
+muda. Ler e gravar arquivo continuam funcionando — trabalhe por eles.
+
+### Se vier `autoteste_inconclusivo`, NÃO anuncie nada
+
+É o app reportando que o autoteste do sandbox dele falhou por conta própria. Se o sandbox não
+conseguisse lançar processo, a mensagem seria *"outside the approved staged workspace"* e teria vindo
+como defeito. Qualquer outro erro significa que processo **roda** e a sonda do autoteste é que está
+errada — medido em 21/09 numa máquina em que os comandos funcionavam.
+
+Tente o comando. Se ele falhar, aí sim diga o erro que veio. Anunciar que a máquina do dono está
+quebrada quando ela não está tem o mesmo efeito de recusar: ele para de pedir.
 
 ### Se vier `latch_incompleto: true`, o problema é de montagem, não de permissão
 
