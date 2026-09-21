@@ -17,7 +17,18 @@ HOME_AGENTE=/var/lib/hermes
 
 # Sem credencial não há agente para agendar nada, e o plow-init já terá parado o
 # boot de qualquer forma.
-[ -f /var/lib/plow/credentials ] || exit 0
+#
+# A credencial deixou de ser um ARQUIVO: a base entrega o token pelo ambiente do
+# s6 (`/run/s6/container_environment/PLOW_AGENT_TOKEN`), e `/var/lib/plow` não
+# existe mais. Enquanto este guarda olhava só para o arquivo, ele saía **em todo
+# boot, em silêncio** -- nenhuma rotina se registrava, o container subia inteiro,
+# o agente respondia quando perguntado e simplesmente nunca falava primeiro.
+# Numa instalação nova isso significa zero rotina, sem um erro sequer. Medido em
+# 21/09, com os seis jobs sobreviventes de um boot antigo escondendo o problema.
+#
+# Os dois caminhos ficam aceitos: o arquivo, para uma base que volte a usá-lo, e
+# o ambiente, que é como funciona hoje.
+[ -f /var/lib/plow/credentials ] || [ -s /run/s6/container_environment/PLOW_AGENT_TOKEN ] || exit 0
 
 for registro in \
   /opt/hermes/skills/where-i-left-off/scripts/register_nudge.py \
