@@ -25,7 +25,8 @@ for registro in \
   /opt/hermes/skills/doc-check/scripts/register_docs.py \
   /opt/hermes/skills/stack-audit/scripts/register_audit.py \
   /opt/hermes/skills/self-update/scripts/register_update.py \
-  /opt/hermes/skills/daily/scripts/register_daily.py
+  /opt/hermes/skills/daily/scripts/register_daily.py \
+  /opt/hermes/skills/radar-de-pauta/scripts/register_pauta.py
 do
   [ -f "$registro" ] || continue
   # Nunca fatal: uma rotina que não registrou não pode impedir o agente de subir
