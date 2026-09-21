@@ -65,17 +65,11 @@ def url_do_relay() -> tuple[str, bool]:
         return "", False
 
 
-def main() -> int:
-    url, veio_do_ambiente = url_do_relay()
-    token = ler("PLOW_AGENT_TOKEN")
-    if not url or not token:
-        print(json.dumps({"maquina": False, "motivo": "esta instalacao nao tem relay configurado"},
-                         ensure_ascii=False))
-        return 0
-
+def chamar(url: str, token: str, metodo: str, params: dict) -> str:
+    """Um JSON-RPC no relay, devolvendo o corpo cru (SSE ou JSON)."""
     pedido = urllib.request.Request(
         url,
-        data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}).encode(),
+        data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": metodo, "params": params}).encode(),
         method="POST",
         headers={
             "Authorization": f"Bearer {token}",
@@ -84,9 +78,53 @@ def main() -> int:
             "Accept": "application/json, text/event-stream",
         },
     )
+    with urllib.request.urlopen(pedido, timeout=20) as resposta:
+        return resposta.read().decode("utf-8", "ignore")
+
+
+def carga(texto: str) -> dict:
+    """O objeto JSON-RPC, venha em linha `data:` do SSE ou em JSON puro."""
+    for linha in texto.splitlines():
+        if linha.startswith("data:"):
+            texto = linha[5:].strip()
+            break
+    return json.loads(texto)
+
+
+def skills_do_dispositivo(url: str, token: str) -> list[str] | None:
+    """Os nomes das skills que a maquina publica, ou None se nao deu para saber.
+
+    Existe por causa de 21/09: a maquina estava conectada e funcionando, mas
+    publicava UMA skill (`plow-folder`), porque o dono nunca rodou o
+    `stage-plugins` do Latch. O agente leu "so plow-folder", concluiu que o
+    produto nao le agenda e mandou o dono pedir a plataforma para habilitar --
+    quando o que faltava eram dois comandos na maquina dele. Guia ausente virou
+    capacidade inexistente, pela quarta vez neste projeto.
+
+    `plow_list_skills` e readOnly e nao pede aprovacao ("Call this early", diz a
+    propria descricao dela), entao custa uma chamada e evita a recusa errada.
+    """
     try:
-        with urllib.request.urlopen(pedido, timeout=20) as resposta:
-            texto = resposta.read().decode("utf-8", "ignore")
+        resposta = carga(chamar(url, token, "tools/call",
+                                {"name": "plow_list_skills", "arguments": {}}))
+        texto = resposta["result"]["content"][0]["text"]
+        return [s["name"] for s in json.loads(texto)["skills"]]
+    except Exception:
+        # Falhar aqui nao pode derrubar a checagem: a resposta que importa --
+        # existe maquina, e qual plataforma -- ja esta em maos.
+        return None
+
+
+def main() -> int:
+    url, veio_do_ambiente = url_do_relay()
+    token = ler("PLOW_AGENT_TOKEN")
+    if not url or not token:
+        print(json.dumps({"maquina": False, "motivo": "esta instalacao nao tem relay configurado"},
+                         ensure_ascii=False))
+        return 0
+
+    try:
+        texto = chamar(url, token, "tools/list", {})
     except urllib.error.HTTPError as erro:
         # 503 "Device is not connected" e a resposta normal de quem nao tem
         # maquina ligada, nao uma falha: e a informacao que viemos buscar.
@@ -98,13 +136,8 @@ def main() -> int:
                          ensure_ascii=False))
         return 0
 
-    # Resposta em SSE: a carga vem numa linha `data:`.
-    for linha in texto.splitlines():
-        if linha.startswith("data:"):
-            texto = linha[5:].strip()
-            break
     try:
-        ferramentas = [t["name"] for t in json.loads(texto).get("result", {}).get("tools", [])]
+        ferramentas = [t["name"] for t in carga(texto).get("result", {}).get("tools", [])]
     except (ValueError, TypeError, KeyError):
         print(json.dumps({"maquina": False, "motivo": "relay respondeu algo que nao e lista de ferramentas"},
                          ensure_ascii=False))
@@ -118,6 +151,24 @@ def main() -> int:
         # esta no Windows, nem `where`/`powershell` a quem esta no Mac.
         e_mac = "plow_run_applescript" in ferramentas
         saida["plataforma"] = "macOS" if e_mac else "Windows ou Linux"
+    if ferramentas:
+        skills = skills_do_dispositivo(url, token)
+        if skills is not None:
+            saida["skills"] = skills
+            # O Latch publica `plow-folder` sem nada montado. As outras vem dos
+            # plugins e do navegador, que sao um passo separado do install --
+            # e nada no caminho de instalacao lembra de faze-lo.
+            if len(skills) <= 1:
+                saida["latch_incompleto"] = True
+                saida["o_que_falta"] = (
+                    "a maquina publica " + str(len(skills)) + " skill(s), entao os plugins e o "
+                    "navegador do Latch nao foram montados nela. NAO conclua que o produto nao faz: "
+                    "o Gmail e o Google Calendar vem da skill `google-workspace`, e o navegador "
+                    "logado da `camoufox-browsing`, e as duas aparecem depois que o dono roda "
+                    "`just stage-plugins` e `just fetch-browser` no diretorio do Latch. Diga isso a "
+                    "ele -- nao mande pedir permissao para a plataforma, porque nao e disso que se "
+                    "trata."
+                )
     if ferramentas and not veio_do_ambiente:
         # A maquina existe agora, mas nao existia quando o container subiu: o
         # probe do boot tirou a PLOW_MCP_URL do ambiente e o gateway nunca

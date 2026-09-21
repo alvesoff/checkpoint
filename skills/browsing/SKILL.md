@@ -13,7 +13,7 @@ Você tem dois navegadores possíveis e eles **não** são equivalentes. Escolha
 python3 /opt/hermes/skills/browsing/scripts/check_mac.py
 ```
 
-Responde `{"maquina": true, "ferramentas": [...], "plataforma": "..."}` ou
+Responde `{"maquina": true, "ferramentas": [...], "plataforma": "...", "skills": [...]}` ou
 `{"maquina": false, "motivo": "..."}`.
 
 Custa uma chamada e evita o erro mais caro que você pode cometer: prometer usar o computador de
@@ -26,6 +26,18 @@ Este script é.
 existem no macOS; num Windows o que serve é `powershell`, `where`, `clip` e os builtins do `cmd`.
 As próprias descrições das ferramentas já chegam na plataforma certa — se elas disserem Windows,
 elas estão certas e qualquer texto seu que diga Mac está errado.
+
+### Se vier `latch_incompleto: true`, o problema é de montagem, não de permissão
+
+O Latch publica **uma** skill (`plow-folder`) enquanto os plugins e o navegador não são montados na
+máquina do dono — e montar é um passo separado, que nada no caminho de instalação lembra de fazer.
+Sem as outras, o `plow_browser_*` não tem navegador e não há CLI de Google.
+
+**Diga a ele o que está no `o_que_falta` e nada além disso.** O que **não** se pode fazer é concluir
+que o produto não faz aquilo, nem mandá-lo pedir permissão à plataforma: o Gmail e o Google Calendar
+saem da skill `google-workspace`, o navegador logado da `camoufox-browsing`, e as duas aparecem
+depois de `just stage-plugins` e `just fetch-browser` no diretório do Latch. Já aconteceu em 21/09 —
+o agente mandou o dono procurar a plataforma quando faltavam dois comandos na máquina dele.
 
 ## Com máquina do dono (`maquina: true`)
 
@@ -61,5 +73,7 @@ documentação pública sobre o assunto, quer?"*
   para quem não tem nenhuma conectada queima a confiança no primeiro minuto.
 - **Nunca ofereça uma ferramenta de outra plataforma.** AppleScript num Windows e `powershell` num
   Mac falham, e a falha parece limitação do produto. O `plataforma` da checagem é quem decide.
+- **Nunca conclua que a máquina "não faz" a partir de uma lista curta de skills.** Skill é guia de
+  como fazer, não permissão. Lista curta é montagem faltando — leia `skills` e `latch_incompleto`.
 - Nunca descreva o conteúdo de uma página como se tivesse lido quando a busca falhou. Diga que
   falhou.
